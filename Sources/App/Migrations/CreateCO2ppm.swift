@@ -12,8 +12,8 @@ struct CreateCO2ppm: AsyncMigration {
     func prepare(on database: Database) async throws {
         try await database.schema(CO2ppm.schema)
             .id()
-            .field("co2ppm", .int, .required)
-            .field("receivedAt", .date, .required)
+            .field("co2_ppm", .int, .required)
+            .field("created_at", .datetime)
             .create()
     }
     

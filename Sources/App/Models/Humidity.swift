@@ -18,25 +18,25 @@ final class Humidity: Model, @unchecked Sendable {
     @ID(key: .id)
     var id: UUID?
     
-    @Field(key: "percentRH")
+    @Field(key: "percent_rh")
     var percentRH: Float
     
-    @Field(key: "receivedAt")
-    var receivedAt: Date
+    @Timestamp(key: "created_at", on: .create)
+    var createdAt: Date?
     
     init() { }
     
-    init(id: UUID? = nil, percentRH: Float, receivedAt: Date) {
+    init(id: UUID? = nil, percentRH: Float, createdAt: Date?) {
         self.id = id
         self.percentRH = percentRH
-        self.receivedAt = receivedAt
+        self.createdAt = createdAt
     }
     
     func toDTO() -> HumidityDTO {
         .init(
             id: self.id,
             percentRH: self.percentRH,
-            receivedAt: self.receivedAt
+            createdAt: self.createdAt
         )
     }
 }

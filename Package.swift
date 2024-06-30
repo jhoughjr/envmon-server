@@ -28,7 +28,10 @@ let package = Package(
                 .product(name: "SwiftCommand", package: "SwiftCommand"),
 
             ],
+            resources: [
+                .copy("./Public/")],
             swiftSettings: swiftSettings
+            
         ),
         .testTarget(
             name: "AppTests",

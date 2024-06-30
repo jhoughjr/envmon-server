@@ -4,6 +4,7 @@ import Vapor
 struct TodoDTO: Content {
     var id: UUID?
     var title: String?
+    var createdAt: Date?
     
     func toModel() -> Todo {
         let model = Todo()

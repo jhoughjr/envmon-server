@@ -11,14 +11,14 @@ import Vapor
 struct HumidityDTO: Content {
     var id: UUID?
     var percentRH: Float
-    var receivedAt: Date
+    var createdAt: Date?
     
     func toModel() -> Humidity {
         let model = Humidity()
         
         model.id = self.id
         model.percentRH = self.percentRH
-        model.receivedAt = receivedAt
+        model.createdAt = createdAt
         return model
     }
 }

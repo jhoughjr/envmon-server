@@ -14,12 +14,15 @@ struct EnvDTO: Content {
     var tempC: Float
     var hum: Float
     var ppm: Int
+    var accel: AccelerationDTO
     
-    func toModels() -> (Temperature, Humidity, CO2ppm) {
-        let t = Temperature(degreesC: tempC, receivedAt: Date())
-        let h = Humidity(percentRH: hum, receivedAt: Date())
-        let c = CO2ppm(co2ppm: ppm, receivedAt: Date())
+    func toModels() -> (Temperature, Humidity, CO2ppm, Acceleration) {
+        let d = Date()
         
-        return (t,h,c)
+        let t = Temperature(degreesC: tempC, createdAt:  d)
+        let h = Humidity(percentRH: hum, createdAt:  d)
+        let c = CO2ppm(co2ppm: ppm, createdAt: d)
+        let a = Acceleration(x: accel.x, y: accel.y, z: accel.z, createdAt: d)
+        return (t,h,c,a)
     }
 }

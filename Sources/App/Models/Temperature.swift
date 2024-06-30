@@ -18,25 +18,25 @@ final class Temperature: Model, @unchecked Sendable {
     @ID(key: .id)
     var id: UUID?
     
-    @Field(key: "degreesC")
+    @Field(key: "degrees_c")
     var degreesC: Float
     
-    @Field(key: "receivedAt")
-    var receivedAt: Date
+    @Timestamp(key: "created_at", on: .create)
+    var createdAt: Date?
     
     init() { }
     
-    init(id: UUID? = nil, degreesC: Float, receivedAt: Date) {
+    init(id: UUID? = nil, degreesC: Float, createdAt: Date) {
         self.id = id
         self.degreesC = degreesC
-        self.receivedAt = receivedAt
+        self.createdAt = createdAt
     }
     
     func toDTO() -> TemperatureDTO {
         .init(
             id: self.id,
             degreesC: self.degreesC,
-            receivedAt: self.receivedAt
+            createdAt: self.createdAt
         )
     }
 }

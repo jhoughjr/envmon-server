@@ -10,14 +10,14 @@ import Fluent
 
 struct CreateTemperature: AsyncMigration {
     func prepare(on database: Database) async throws {
-        try await database.schema("temperatures")
+        try await database.schema(Temperature.schema)
             .id()
-            .field("degreesC", .float, .required)
-            .field("receivedAt", .date, .required)
+            .field("degrees_c", .float, .required)
+            .field("created_at", .datetime)
             .create()
     }
     
     func revert(on database: Database) async throws {
-        try await database.schema("temperatures").delete()
+        try await database.schema(Temperature.schema).delete()
     }
 }

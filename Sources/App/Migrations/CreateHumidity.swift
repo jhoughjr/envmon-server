@@ -11,14 +11,14 @@ import Fluent
 
 struct CreateHumidity: AsyncMigration {
     func prepare(on database: Database) async throws {
-        try await database.schema("humidities")
+        try await database.schema(Humidity.schema)
             .id()
-            .field("percentRH", .float, .required)
-            .field("receivedAt", .date, .required)
+            .field("percent_rh", .float, .required)
+            .field("created_at", .datetime)
             .create()
     }
     
     func revert(on database: Database) async throws {
-        try await database.schema("humidities").delete()
+        try await database.schema(Humidity.schema).delete()
     }
 }

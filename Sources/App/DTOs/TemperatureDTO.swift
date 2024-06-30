@@ -11,14 +11,14 @@ import Vapor
 struct TemperatureDTO: Content {
     var id: UUID?
     var degreesC: Float
-    var receivedAt: Date
+    var createdAt: Date?
     
     func toModel() -> Temperature {
         let model = Temperature()
         
         model.id = self.id
         model.degreesC = self.degreesC
-        model.receivedAt = self.receivedAt
+        model.createdAt = self.createdAt
         return model
     }
 }
