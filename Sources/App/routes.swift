@@ -1,11 +1,11 @@
 import Fluent
 import Vapor
+import SSEKit
 
 func routes(_ app: Application) throws {
-//    app.get { req async in
-//        "envmon-server is OK."
-//    }
-    
+
+    let eventStream = AsyncStream<ServerSentEvent>.makeStream()
+
     try app.register(collection: TodoController())
     try app.register(collection: CO2ppmController())
     try app.register(collection: TemperatureController())
@@ -23,4 +23,39 @@ func routes(_ app: Application) throws {
         return Response(status: .accepted)
     }
     
+    app.on(.GET, "makeevent") { req -> Response in
+        let now = SSEValue(string: Date.now.ISO8601Format())
+        let event = ServerSentEvent(data: now)
+        
+        let _ = eventStream.continuation.yield(event)
+        return .init(status: .ok,
+                     version: .http1_1,
+                     headers: .init(),
+                     body: .empty)
+    }
+    
+    app.on(.GET, "sse", body: .stream) { request -> Response  in
+        
+        let now = SSEValue(string: Date.now.ISO8601Format())
+        let event = ServerSentEvent(data: now)
+        
+        let _ = eventStream.continuation.yield(event)
+                
+        return Response(status: .ok,
+                        version: .http1_1,
+                        headers: .init([("content-type", "text/event-stream"),
+                                        ("tranfer-encoding", "chunked")]),
+                        body: .init(asyncStream: { writer in
+            
+            let stuff = eventStream.stream.mapToByteBuffer(allocator: app.allocator)
+            
+            for try await event in stuff {
+                try await writer.writeBuffer(event)
+            }
+            try await writer.write(.end)
+        }))
+        
+        
+    }
 }
+
