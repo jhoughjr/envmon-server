@@ -46,13 +46,20 @@ func routes(_ app: Application) throws {
                                         ("transfer-encoding", "chunked")]),
                         body: .init(asyncStream: { writer in
             
-                req.logger.info("getting stuff")
-                let stuff = eventStream.stream.mapToByteBuffer(allocator: app.allocator)
-                
+            req.logger.info("getting stuff")
+            let stuff = eventStream.stream.mapToByteBuffer(allocator: app.allocator)
+            do {
                 for try await event in stuff {
                     req.logger.info("writting event")
                     try await writer.writeBuffer(event)
                 }
+            }
+            catch {
+                req.logger.error("\(error)")
+                req.logger.info("writting end")
+                try await writer.write(.end)
+            }
+            // is this ever reached?
                 req.logger.info("writting end")
                 try await writer.write(.end)
         }))
