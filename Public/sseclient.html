@@ -29,6 +29,30 @@
         newElement.textContent = `message: ${event.data}`;
         eventList.appendChild(newElement);
     };
+    evtSource.addEventListener("tmp", (e) => {
+        const newElement = document.createElement("li");
+        const eventList = document.getElementById("list");
+        console.log(e.data);
+        newElement.textContent = `temp: ${e.data}`;
+        eventList.appendChild(newElement);
+    });
+    
+    evtSource.addEventListener("hum", (e) => {
+        const newElement = document.createElement("li");
+        const eventList = document.getElementById("list");
+        console.log(e.data);
+        newElement.textContent = `%RH: ${e.data}`;
+        eventList.appendChild(newElement);
+    });
+    
+    evtSource.addEventListener("co2", (e) => {
+        const newElement = document.createElement("li");
+        const eventList = document.getElementById("list");
+        console.log(e.data);
+        newElement.textContent = `co2: ${e.data}`;
+        eventList.appendChild(newElement);
+    });
+    
 </script>
 </body>
 

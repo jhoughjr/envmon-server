@@ -29,7 +29,7 @@ let package = Package(
                 .product(name: "Fluent", package: "fluent"),
                 .product(name: "FluentPostgresDriver", package: "fluent-postgres-driver"),
                 .product(name: "Vapor", package: "vapor"),
-                .product(name: "SwiftCommand", package: "SwiftCommand"),
+//                .product(name: "SwiftCommand", package: "SwiftCommand"),
                 .product(name: "SSEKit", package: "SSEKit"),
 
 
