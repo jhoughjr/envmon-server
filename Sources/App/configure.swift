@@ -33,6 +33,8 @@ public func configure(_ app: Application) async throws {
     let cors = CORSMiddleware(configuration: corsConfiguration)
     // cors middleware should come before default error middleware using `at: .beginning`
     app.middleware.use(cors, at: .beginning)
+    
+    app.wsConnections = WSConnectionManager(application:app)
     // register routes
     try routes(app)
 }

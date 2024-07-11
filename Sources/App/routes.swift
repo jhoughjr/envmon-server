@@ -1,12 +1,86 @@
 import Fluent
 import Vapor
-import SSEKit
+
+struct wsConManKey: StorageKey {
+    typealias Value = WSConnectionManager
+}
+
+extension Application {
+    var wsConnections: WSConnectionManager? {
+        get {
+            self.storage[wsConManKey.self]
+        }
+        set {
+            self.storage[wsConManKey.self] = newValue
+        }
+    }
+}
+
+final class WSConnectionManager {
+    
+    typealias Connection = (Request, WebSocket)
+    init(application:Application) {
+        self.application = application
+    }
+    
+    var connections = [Connection]()
+    var application: Application
+    
+    func connected(con: Connection) {
+        // cache the connection
+        connections.append(con)
+        
+        // add message handlers
+        con.1.onText { ws, text in
+            con.0.logger.info("\(text)")
+        }
+        
+        con.1.onBinary { ws, bytes in
+            con.0.logger.info("\(bytes.readableBytes) bytes")
+        }
+
+    }
+    
+    func disconnectAll() {
+        for con in connections {
+            con.1.close(code: .normalClosure)
+        }
+    }
+    
+    func disconnect(con: Connection) {
+        con.1.close(code: .normalClosure)
+    }
+    
+    func purgeDisconnectedClients() {
+        for con in connections {
+            if con.1.isClosed {
+                application.logger.info("purging \(con.0.id)")
+                connections.removeAll { comp in
+                    comp.0.id == con.0.id
+                }
+            }
+        }
+    }
+    
+    func broadcast(string: String) async throws {
+        purgeDisconnectedClients()
+        for con in connections {
+            application.logger.info("sending to \(con.0.id)")
+            try await con.1.send(string)
+        }
+    }
+    
+    func broadcast(bytes: ByteBuffer) async throws {
+        purgeDisconnectedClients()
+        for con in connections {
+            con.1.send(bytes)
+        }
+    }
+}
+
 
 func routes(_ app: Application) throws {
-
-    // event stream
-    let eventStream = AsyncStream<ServerSentEvent>.makeStream()
-
+    
     try app.register(collection: TodoController())
     try app.register(collection: CO2ppmController())
     try app.register(collection: TemperatureController())
@@ -14,70 +88,35 @@ func routes(_ app: Application) throws {
     try app.register(collection: AccelerationController())
 
     app.post("envdata") { req async throws -> Response  in
+        // decode
+        req.logger.info("decoding...")
         let env = try await EnvDTO.decodeRequest(req)
+        req.logger.info("converting to models...")
         let a = env.toModels()
         
+        req.logger.info("saving to db")
+        // store
         try await a.0.save(on: req.db) // temp
         try await a.1.save(on: req.db) // hum
         try await a.2.save(on: req.db) // ppm
         try await a.3.save(on: req.db) // acc
-        let tevent = ServerSentEvent(type: "tmp", comment: nil, data: SSEValue(string: "\(a.0.degreesC)"), id: "\(a.0.id)")
-        let hevent = ServerSentEvent(type: "hum", comment: nil, data: SSEValue(string: "\(a.1.percentRH)"), id: "\(a.1.id)")
-        let cevent = ServerSentEvent(type: "co2", comment: nil, data: SSEValue(string: "\(a.2.co2ppm)"), id: "\(a.2.id)")
-        eventStream.continuation.yield(tevent)
-        eventStream.continuation.yield(hevent)
-        eventStream.continuation.yield(cevent)
-
+        
+        req.logger.info("notifying webscoket \(app.wsConnections?.connections.count ?? 0) clients")
+        // i dont like this
+        // need to find another way to hook into this event without making the rsponse depend on the broadcast
+        let data = env.toJSON()
+        
+        req.logger.info("broadcasting...")
+        app.wsConnections?.purgeDisconnectedClients()
+        try await app.wsConnections?.broadcast(string: String(data: data, encoding: .utf8)!)
+        req.logger.info("accepting")
         return Response(status: .accepted)
     }
     
-    app.on(.GET, "makeevent") { req -> Response in
-
-        let now = SSEValue(string: Date.now.ISO8601Format())
-        let event = ServerSentEvent(data: now)
-        
-        let _ = eventStream.continuation.yield(event)
-
-        return .init(status: .ok,
-                     version: .http1_1,
-                     headers: .init(),
-                     body: .empty)
+    app.webSocket("envrt") { req, ws in
+        app.wsConnections?.connected(con: (req,ws))
+        req.logger.info("Connected ws for \(req.remoteAddress?.ipAddress ?? "unknown")")
     }
     
-    app.on(.GET, "closeStream") { req -> Response in
-        eventStream.continuation.finish()
-        return .init(status: .accepted,
-                     version: .http1_1,
-                     headers: .init(),
-                     body: .empty)
-    }
-    
-    app.on(.GET, "sse", body: .stream) { req -> Response  in
-
-        return Response(status: .ok,
-                        version: .http1_1,
-                        headers: .init([("content-type", "text/event-stream"),
-                                        ("transfer-encoding", "chunked")]),
-                        body: .init(asyncStream: { writer in
-            
-            req.logger.info("getting stuff in async body stream...")
-            let stuff = eventStream.stream.mapToByteBuffer(allocator: app.allocator)
-            do {
-                for try await event in stuff {
-                    req.logger.info("writting event in response for \(req.id)")
-                    try await writer.writeBuffer(event)
-                }
-            }
-            catch {
-                req.logger.error("\(error)")
-                req.logger.error("writting end")
-                try await writer.write(.error(error))
-            }
-            
-            // is this ever reached?
-                req.logger.info("writting end fallthrough")
-                try await writer.write(.end)
-        }))
-    }
 }
 

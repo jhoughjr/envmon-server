@@ -1,0 +1,99 @@
+<html>
+    <head>
+        <title>Envmon 1.0</title>
+        <script src="https://cdn.plot.ly/plotly-2.32.0.min.js" charset="utf-8"></script>
+<!--<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>-->
+    </head>
+    
+    
+    <body>
+        <div id = "lastTemp">
+        </div>
+        <div id="tempChart">
+        </div>
+        <div id = "lastHum">
+        </div>
+        <div id="humChart">
+        </div>
+        <div id = "lastCo2">
+        </div>
+        <div id="co2Chart">
+        </div>
+    </body>
+    
+    <script>
+        // Create WebSocket connection.
+        const socket = new WebSocket("ws://localhost:8080/envrt");
+        var timestamps = [];
+        
+        // Connection opened
+        socket.addEventListener("open", (event) => {
+            socket.send("Hello Server!");
+        });
+        
+        // Listen for messages
+        socket.addEventListener("message", (event) => {
+            console.log("Message from server ", event.data);
+            var date = Date.now();
+            timestamps.push(date.toString());
+            
+            const o = JSON.parse(event.data);
+            
+            lastTemp = o["tempC"];
+            lastHum = o["hum"];
+            lastCo2 = o["co2"];
+            
+            var tempDiv = document.getElementById("lastTemp");
+            var humDiv = document.getElementById("lastHum");
+            var co2Div = document.getElementById("lastCo2");
+            
+            tempDiv.innerHTML = "<p>"+ lastTemp  +" °C</p>";
+            humDiv.innerHTML = "<p>"+ lastHum  +" % RH</p>";
+            co2Div.innerHTML = "<p>"+ lastCo2  +" ppm CO2</p>";
+            
+            temps.push(o.tempC);
+            hums.push(o.hum);
+            ppms.push(o.co2);
+            
+            Plotly.newPlot('tempChart', [trace1]);
+            Plotly.newPlot('humChart', [trace2]);
+            Plotly.newPlot('co2Chart', [trace3]);
+
+            
+        });
+        
+        var temps = [
+                    
+                    ];
+        var hums = [
+                     
+                     ];
+     var ppms = [
+                  
+                  ];
+        
+      
+      var trace1 = {
+          x: timestamps,
+          y: temps,
+          type: 'scatter'
+      };
+        
+        var trace2 = {
+            x: timestamps,
+            y: hums,
+            type: 'scatter'
+        };
+        var trace3 = {
+            x: timestamps,
+            y: ppms,
+            type: 'scatter'
+        };
+        
+      Plotly.newPlot('tempChart', [trace1]);
+      Plotly.newPlot('humChart', [trace2]);
+      Plotly.newPlot('co2Chart', [trace3]);
+
+
+    </script>
+</html>

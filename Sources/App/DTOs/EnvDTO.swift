@@ -25,4 +25,15 @@ struct EnvDTO: Content {
         let a = Acceleration(x: accel.x, y: accel.y, z: accel.z, createdAt: d)
         return (t,h,c,a)
     }
+    
+    func toJSON() -> Data {
+        """
+        {
+        \"tempC\" : \(self.tempC),
+        \"hum\" : \(self.hum),
+        \"co2\" : \(self.ppm)
+        }
+        """.data(using: .utf8)!
+        
+    }
 }
