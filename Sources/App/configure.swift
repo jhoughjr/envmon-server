@@ -2,7 +2,7 @@ import NIOSSL
 import Fluent
 import FluentPostgresDriver
 import Vapor
-
+import Leaf
 // configures your application
 public func configure(_ app: Application) async throws {
     
@@ -35,6 +35,10 @@ public func configure(_ app: Application) async throws {
     app.middleware.use(cors, at: .beginning)
     
     app.wsConnections = WSConnectionManager(application:app)
+    app.updateManager = UpdateIntervalManager()
+    app.lastReadingManager = LastReadingManager()
+    
+    app.views.use(.leaf)
     // register routes
     try routes(app)
 }

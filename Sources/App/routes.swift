@@ -5,6 +5,16 @@ struct wsConManKey: StorageKey {
     typealias Value = WSConnectionManager
 }
 
+struct updaterKey: StorageKey {
+    typealias Value = UpdateIntervalManager
+}
+
+
+struct lasytReadingKey: StorageKey {
+    typealias Value = LastReadingManager
+}
+
+
 extension Application {
     var wsConnections: WSConnectionManager? {
         get {
@@ -38,17 +48,23 @@ final class WSConnectionManager {
         con.1.onBinary { ws, bytes in
             con.0.logger.info("\(bytes.readableBytes) bytes")
         }
+        
+        
+        if let v = application.lastReadingManager?.lastReading {
+                let d = v.toJSON()
+                con.1.send(d)
+        }
 
     }
     
     func disconnectAll() {
         for con in connections {
-            con.1.close(code: .normalClosure)
+            _ = con.1.close(code: .normalClosure)
         }
     }
     
     func disconnect(con: Connection) {
-        con.1.close(code: .normalClosure)
+        _ = con.1.close(code: .normalClosure)
     }
     
     func purgeDisconnectedClients() {
@@ -78,6 +94,43 @@ final class WSConnectionManager {
     }
 }
 
+final class UpdateIntervalManager {
+    var updateInterval:Int = 30_000
+    
+}
+extension Application {
+    var updateManager: UpdateIntervalManager? {
+        get {
+            self.storage[updaterKey.self]
+        }
+        set {
+            self.storage[updaterKey.self] = newValue
+        }
+    }
+}
+
+
+final class LastReadingManager {
+    var lastReading:EnvDTO? = nil
+    
+}
+
+extension Application {
+    var lastReadingManager: LastReadingManager? {
+        get {
+            self.storage[lasytReadingKey.self]
+        }
+        set {
+            self.storage[lasytReadingKey.self] = newValue
+        }
+    }
+}
+
+
+
+struct UpdateIntervalDTO: Content {
+    let ms:Int
+}
 
 func routes(_ app: Application) throws {
     
@@ -86,7 +139,29 @@ func routes(_ app: Application) throws {
     try app.register(collection: TemperatureController())
     try app.register(collection: HumidtyController())
     try app.register(collection: AccelerationController())
-
+    
+    app.post("updateInterval") {  req async throws -> Response  in
+        let i = try req.content.decode(UpdateIntervalDTO.self)
+        app.updateManager?.updateInterval = i.ms
+        
+        return .init(status: .ok)
+    }
+    
+    app.get("updateInterval") {  req async throws -> Response  in
+        var v = app.updateManager?.updateInterval ?? 30_000 //get in redis
+        return try await UpdateIntervalDTO(ms: v).encodeResponse(for: req)
+    }
+    
+    app.get("lastReading") { req async throws -> Response in
+       return try await app.lastReadingManager?.lastReading?.encodeResponse(for: req)  ??
+              .init(status: .noContent)
+    }
+    
+    app.get("") { req async throws -> View in
+        return try await req.view.render("index", ["socketaddr" : "ws://localhost:8080/envrt",
+                                                   "hostname": "localhost:8080"])
+    }
+    
     app.post("envdata") { req async throws -> Response  in
         // decode
         req.logger.info("decoding...")
@@ -105,8 +180,8 @@ func routes(_ app: Application) throws {
         // i dont like this
         // need to find another way to hook into this event without making the rsponse depend on the broadcast
         let data = env.toJSON()
-        
-        req.logger.info("broadcasting...")
+        app.logger.info("\(app.lastReadingManager)")
+        app.lastReadingManager?.lastReading = env
         app.wsConnections?.purgeDisconnectedClients()
         try await app.wsConnections?.broadcast(string: String(data: data, encoding: .utf8)!)
         req.logger.info("accepting")
@@ -117,6 +192,7 @@ func routes(_ app: Application) throws {
         app.wsConnections?.connected(con: (req,ws))
         req.logger.info("Connected ws for \(req.remoteAddress?.ipAddress ?? "unknown")")
     }
+    
     
 }
 

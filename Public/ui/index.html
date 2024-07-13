@@ -1,30 +1,48 @@
 <html>
     <head>
         <title>Envmon 1.0</title>
+        <link rel="stylesheet" href="style.css">
         <script src="https://cdn.plot.ly/plotly-2.32.0.min.js" charset="utf-8"></script>
-<!--<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>-->
+        <script src="./gauge.min.js" charset="utf-8"></script>
+
+        <meta charset="UTF-8">
     </head>
     
-    
     <body>
-        <div id = "lastTemp">
+        <section>
+        <h1>Envmon</h1>
+        <hr>
+        <div id="msg">
         </div>
-        <div id="tempChart">
+        <br>
+        <div class="row">
+            <div class="column" id="tempChart">
+            </div>
+            <div class="column" id="lastTemp">
+            </div>
         </div>
-        <div id = "lastHum">
+        <div class="row">
+            <div class="column" id="humChart">
+            </div>
+            <div class="column" id="lastHum">
+            </div>
         </div>
-        <div id="humChart">
+        <div class="row">
+            <div class="column" id="co2Chart">
+            </div>
+            <div class="column" id="lastCo2">
+            </div>
         </div>
-        <div id = "lastCo2">
-        </div>
-        <div id="co2Chart">
-        </div>
+        <hr>
+        <section>
     </body>
     
     <script>
+        // need to mod this address when serving to the public i think
+        // use leaf to template it in dynamically with the fqdn
+        
         // Create WebSocket connection.
         const socket = new WebSocket("ws://localhost:8080/envrt");
-        var timestamps = [];
         
         // Connection opened
         socket.addEventListener("open", (event) => {
@@ -34,8 +52,9 @@
         // Listen for messages
         socket.addEventListener("message", (event) => {
             console.log("Message from server ", event.data);
-            var date = Date.now();
-            timestamps.push(date.toString());
+            const date = new Date();
+            const dateStr = date.toLocaleString();
+            timestamps.push(dateStr);
             
             const o = JSON.parse(event.data);
             
@@ -43,57 +62,137 @@
             lastHum = o["hum"];
             lastCo2 = o["co2"];
             
-            var tempDiv = document.getElementById("lastTemp");
-            var humDiv = document.getElementById("lastHum");
-            var co2Div = document.getElementById("lastCo2");
+            temps.push(lastTemp);
+            hums.push(lastHum);
+            ppms.push(lastCo2);
             
-            tempDiv.innerHTML = "<p>"+ lastTemp  +" °C</p>";
-            humDiv.innerHTML = "<p>"+ lastHum  +" % RH</p>";
-            co2Div.innerHTML = "<p>"+ lastCo2  +" ppm CO2</p>";
-            
-            temps.push(o.tempC);
-            hums.push(o.hum);
-            ppms.push(o.co2);
-            
-            Plotly.newPlot('tempChart', [trace1]);
-            Plotly.newPlot('humChart', [trace2]);
-            Plotly.newPlot('co2Chart', [trace3]);
-
-            
+            document.getElementById("msg").innerHTML = "";
+            updateCharts();
+            updateGauges();
         });
         
-        var temps = [
-                    
-                    ];
-        var hums = [
-                     
-                     ];
-     var ppms = [
-                  
-                  ];
+        // x
+        var timestamps = [];
         
-      
-      var trace1 = {
+        // ys
+        var temps = [];
+        var hums = [];
+        var ppms = [];
+        
+        // graph configs
+        var trace1 = {
           x: timestamps,
           y: temps,
+          marker: {
+              color: '#23b7e5'
+          },
           type: 'scatter'
-      };
+        };
         
         var trace2 = {
             x: timestamps,
             y: hums,
-            type: 'scatter'
-        };
-        var trace3 = {
-            x: timestamps,
-            y: ppms,
+            marker: {
+                color: '#23b7e5'
+            },
             type: 'scatter'
         };
         
-      Plotly.newPlot('tempChart', [trace1]);
-      Plotly.newPlot('humChart', [trace2]);
-      Plotly.newPlot('co2Chart', [trace3]);
-
-
+        var trace3 = {
+            x: timestamps,
+            y: ppms,
+            marker: {
+                color: '#23b7e5'
+            },
+            type: 'scatter'
+        };
+    
+        function updateCharts() {
+            var tempDiv = document.getElementById("lastTemp");
+            var humDiv = document.getElementById("lastHum");
+            var co2Div = document.getElementById("lastCo2");
+            
+            
+            var layout = {
+                paper_bgcolor:'rgba(1,1,1,0)',
+                plot_bgcolor:'rgba(0,0,0,0)',
+                plot_fgcolor:'rgba(0,1,0,0)',
+                font: {
+                    family: 'Courier New, monospace',
+                    size: 18,
+                    color: '#aaaaaa'
+                }
+            }
+            
+              Plotly.newPlot('tempChart', [trace1], layout);
+              Plotly.newPlot('humChart', [trace2], layout);
+              Plotly.newPlot('co2Chart', [trace3], layout);
+        }
+        
+        function updateGauges() {
+            
+            var tdata = [
+                        {
+                            domain: { x: [0, 1], y: [0, 1] },
+                            value: lastTemp,
+                            title: { text: "°C" },
+                            type: "indicator",
+                            mode: "gauge+number"
+                        }
+                        ];
+                        
+                var layout = {
+                    paper_bgcolor:'rgba(1,1,1,0)',
+                    plot_bgcolor:'rgba(0,0,0,0)',
+                    plot_fgcolor:'rgba(0,1,0,0)',
+                    font: {
+                        color: '#ffffff'
+                    }
+                }
+                Plotly.newPlot('lastTemp', tdata, layout);
+            
+            
+            var hdata = [
+                         {
+                             domain: { x: [0, 1], y: [0, 1] },
+                             value: lastHum,
+                             title: { text: "% RH" },
+                             type: "indicator",
+                             mode: "gauge+number"
+                         }
+                         ];
+                         
+                         var layout = {
+                             paper_bgcolor:'rgba(1,1,1,0)',
+                             plot_bgcolor:'rgba(0,0,0,0)',
+                             plot_fgcolor:'rgba(0,1,0,0)',
+                             font: {
+                                 color: '#ffffff'
+                             }
+                         }
+                         Plotly.newPlot('lastHum', hdata, layout);
+                         
+             var cdata = [
+                          {
+                              domain: { x: [0, 1], y: [0, 1] },
+                              value: lastCo2,
+                              title: { text: "ppm CO2" },
+                              type: "indicator",
+                              mode: "gauge+number"
+                          }
+                          ];
+                          
+                          var layout = {
+                              paper_bgcolor:'rgba(1,1,1,0)',
+                              plot_bgcolor:'rgba(0,0,0,0)',
+                              plot_fgcolor:'rgba(0,1,0,0)',
+                              font: {
+                                  color: '#ffffff'
+                              }
+                          }
+                          Plotly.newPlot('lastCo2', cdata, layout);
+        }
+        
+        msg.innerHTML = "Waiting for data..."
     </script>
 </html>
