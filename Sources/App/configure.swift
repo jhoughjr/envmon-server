@@ -39,6 +39,7 @@ public func configure(_ app: Application) async throws {
     app.lastReadingManager = LastReadingManager()
     
     app.views.use(.leaf)
+    
     // register routes
     try routes(app)
 }

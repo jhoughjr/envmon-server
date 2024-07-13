@@ -1,6 +1,11 @@
 import Fluent
 import Vapor
 
+struct DateQueryDTO:Content {
+    let start: Date?
+    let end: Date?
+}
+
 struct wsConManKey: StorageKey {
     typealias Value = WSConnectionManager
 }
@@ -132,6 +137,7 @@ struct UpdateIntervalDTO: Content {
     let ms:Int
 }
 
+
 func routes(_ app: Application) throws {
     
     try app.register(collection: TodoController())
@@ -148,7 +154,7 @@ func routes(_ app: Application) throws {
     }
     
     app.get("updateInterval") {  req async throws -> Response  in
-        var v = app.updateManager?.updateInterval ?? 30_000 //get in redis
+        let v = app.updateManager?.updateInterval ?? 30_000
         return try await UpdateIntervalDTO(ms: v).encodeResponse(for: req)
     }
     
@@ -188,6 +194,48 @@ func routes(_ app: Application) throws {
         return Response(status: .accepted)
     }
     
+    app.get("envdata/temps") { req async throws -> Response in
+        let range = try req.query.decode(DateQueryDTO.self)
+        req.logger.info("\(range)")
+     
+       let temps = try await Temperature.query(on: req.db)
+            .filter(\.$createdAt >= range.start)
+            .filter(\.$createdAt <= range.end ?? Date())
+            .all()
+        
+        let coded = try JSONEncoder().encode(temps)
+        
+        return .init(status: .ok,
+                     body: .init(data: coded))
+    }
+                     
+    app.get("envdata/hums") { req async throws -> Response in
+            let range = try req.query.decode(DateQueryDTO.self)
+            req.logger.info("\(range)")
+            
+            let hums = try await Humidity.query(on: req.db)
+                .filter(\.$createdAt >= range.start)
+                .filter(\.$createdAt <= range.end ?? Date())
+                .all()
+          
+            let coded = try JSONEncoder().encode(hums)
+            return .init(status: .ok,
+                         body: .init(data: coded))
+    }
+    
+    app.get("envdata/co2s") { req async throws -> Response in
+                let range = try req.query.decode(DateQueryDTO.self)
+                req.logger.info("\(range)")
+                
+                let co2s = try await CO2ppm.query(on: req.db)
+                    .filter(\.$createdAt >= range.start)
+                    .filter(\.$createdAt <= range.end ?? Date())
+                    .all()
+                let coded = try JSONEncoder().encode(co2s)
+                return .init(status: .ok,
+                             body: .init(data: coded))
+    }
+                     
     app.webSocket("envrt") { req, ws in
         app.wsConnections?.connected(con: (req,ws))
         req.logger.info("Connected ws for \(req.remoteAddress?.ipAddress ?? "unknown")")
