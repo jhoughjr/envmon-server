@@ -2,7 +2,7 @@ import Fluent
 import Vapor
 
 struct DateQueryDTO:Content {
-    let start: Date?
+    let start: Date
     let end: Date?
 }
 
@@ -14,11 +14,9 @@ struct updaterKey: StorageKey {
     typealias Value = UpdateIntervalManager
 }
 
-
 struct lasytReadingKey: StorageKey {
     typealias Value = LastReadingManager
 }
-
 
 extension Application {
     var wsConnections: WSConnectionManager? {
@@ -31,7 +29,7 @@ extension Application {
     }
 }
 
-final class WSConnectionManager {
+final class WSConnectionManager: Sendable {
     
     typealias Connection = (Request, WebSocket)
     init(application:Application) {
@@ -99,10 +97,12 @@ final class WSConnectionManager {
     }
 }
 
-final class UpdateIntervalManager {
+final class UpdateIntervalManager: Sendable {
+    
     var updateInterval:Int = 30_000
     
 }
+
 extension Application {
     var updateManager: UpdateIntervalManager? {
         get {
@@ -114,8 +114,7 @@ extension Application {
     }
 }
 
-
-final class LastReadingManager {
+final class LastReadingManager: Sendable {
     var lastReading:EnvDTO? = nil
     
 }
@@ -131,10 +130,8 @@ extension Application {
     }
 }
 
-
-
 struct UpdateIntervalDTO: Content {
-    let ms:Int
+    let ms: Int
 }
 
 
@@ -153,6 +150,7 @@ func routes(_ app: Application) throws {
         return .init(status: .ok)
     }
     
+    // need to update hw to dl this and consume it
     app.get("updateInterval") {  req async throws -> Response  in
         let v = app.updateManager?.updateInterval ?? 30_000
         return try await UpdateIntervalDTO(ms: v).encodeResponse(for: req)
@@ -163,19 +161,19 @@ func routes(_ app: Application) throws {
               .init(status: .noContent)
     }
     
+    // ui
     app.get("") { req async throws -> View in
+        
         return try await req.view.render("index", ["socketaddr" : "ws://localhost:8080/envrt",
                                                    "hostname": "localhost:8080"])
     }
     
+    // realtime
     app.post("envdata") { req async throws -> Response  in
         // decode
-        req.logger.info("decoding...")
         let env = try await EnvDTO.decodeRequest(req)
-        req.logger.info("converting to models...")
         let a = env.toModels()
         
-        req.logger.info("saving to db")
         // store
         try await a.0.save(on: req.db) // temp
         try await a.1.save(on: req.db) // hum
@@ -184,9 +182,8 @@ func routes(_ app: Application) throws {
         
         req.logger.info("notifying webscoket \(app.wsConnections?.connections.count ?? 0) clients")
         // i dont like this
-        // need to find another way to hook into this event without making the rsponse depend on the broadcast
+        // should return models not env maybe?
         let data = env.toJSON()
-        app.logger.info("\(app.lastReadingManager)")
         app.lastReadingManager?.lastReading = env
         app.wsConnections?.purgeDisconnectedClients()
         try await app.wsConnections?.broadcast(string: String(data: data, encoding: .utf8)!)
@@ -194,53 +191,80 @@ func routes(_ app: Application) throws {
         return Response(status: .accepted)
     }
     
-    app.get("envdata/temps") { req async throws -> Response in
-        let range = try req.query.decode(DateQueryDTO.self)
-        req.logger.info("\(range)")
-     
-       let temps = try await Temperature.query(on: req.db)
-            .filter(\.$createdAt >= range.start)
-            .filter(\.$createdAt <= range.end ?? Date())
-            .all()
+    app.get("envdata","temps") { req async throws -> Response in
         
-        let coded = try JSONEncoder().encode(temps)
-        
-        return .init(status: .ok,
-                     body: .init(data: coded))
+        if let range = try? req.query.decode(DateQueryDTO.self) {
+            
+            req.logger.info("\(range)")
+            
+            let temps = try await Temperature.query(on: req.db)
+                .filter(\.$createdAt >= range.start)
+                .filter(\.$createdAt <= range.end ?? Date())
+                .all()
+            
+            let coded = try JSONEncoder().encode(temps)
+            
+            return .init(status: .ok,
+                         body: .init(data: coded))
+        }else {
+            let temps = try await Temperature.query(on: req.db)
+                .all()
+            
+            let coded = try JSONEncoder().encode(temps)
+            
+            return .init(status: .ok,
+                         body: .init(data: coded))
+        }
     }
                      
-    app.get("envdata/hums") { req async throws -> Response in
-            let range = try req.query.decode(DateQueryDTO.self)
+    app.get("envdata","hums") { req async throws -> Response in
+        if let range = try? req.query.decode(DateQueryDTO.self) {
             req.logger.info("\(range)")
             
             let hums = try await Humidity.query(on: req.db)
                 .filter(\.$createdAt >= range.start)
                 .filter(\.$createdAt <= range.end ?? Date())
                 .all()
-          
+            
             let coded = try JSONEncoder().encode(hums)
             return .init(status: .ok,
                          body: .init(data: coded))
+        }else {
+            let hums = try await Humidity.query(on: req.db)
+                .all()
+            
+            let coded = try JSONEncoder().encode(hums)
+            return .init(status: .ok,
+                         body: .init(data: coded))
+        }
     }
     
-    app.get("envdata/co2s") { req async throws -> Response in
-                let range = try req.query.decode(DateQueryDTO.self)
-                req.logger.info("\(range)")
-                
-                let co2s = try await CO2ppm.query(on: req.db)
-                    .filter(\.$createdAt >= range.start)
-                    .filter(\.$createdAt <= range.end ?? Date())
-                    .all()
-                let coded = try JSONEncoder().encode(co2s)
-                return .init(status: .ok,
-                             body: .init(data: coded))
+    app.get("envdata","co2s") { req async throws -> Response in
+        
+        if let range = try? req.query.decode(DateQueryDTO.self) {
+            req.logger.info("\(range)")
+            
+            let co2s = try await CO2ppm.query(on: req.db)
+                .filter(\.$createdAt >= range.start)
+                .filter(\.$createdAt <= range.end ?? Date())
+                .all()
+            
+            let coded = try JSONEncoder().encode(co2s)
+            return .init(status: .ok,
+                         body: .init(data: coded))
+        }else {
+            let co2s = try await CO2ppm.query(on: req.db)
+                .all()
+            let coded = try JSONEncoder().encode(co2s)
+            return .init(status: .ok,
+                         body: .init(data: coded))
+        }
     }
-                     
+    
+    // realtime
     app.webSocket("envrt") { req, ws in
         app.wsConnections?.connected(con: (req,ws))
         req.logger.info("Connected ws for \(req.remoteAddress?.ipAddress ?? "unknown")")
     }
-    
-    
 }
 

@@ -28,7 +28,8 @@ let package = Package(
 
             ],
             resources: [
-                .copy("Public/")],
+//                .copy("Public/")
+            ],
             swiftSettings: swiftSettings
             
         ),
