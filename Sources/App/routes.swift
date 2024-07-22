@@ -1,5 +1,6 @@
 import Fluent
 import Vapor
+import QueuesRedisDriver
 
 struct DateQueryDTO:Content {
     let start: Date
@@ -32,11 +33,13 @@ extension Application {
 final class WSConnectionManager: Sendable {
     
     typealias Connection = (Request, WebSocket)
+    
     init(application:Application) {
         self.application = application
     }
     
     var connections = [Connection]()
+    
     var application: Application
     
     func connected(con: Connection) {
@@ -55,7 +58,11 @@ final class WSConnectionManager: Sendable {
         
         if let v = application.lastReadingManager?.lastReading {
                 let d = v.toJSON()
-                con.1.send(d)
+            let s = String(data:d, encoding: .utf8)
+            application.logger.info("sending Last Reading")
+            application.logger.info(("\(s!)"))
+//                con.1.send(d)
+            con.1.send(s!)
         }
 
     }
@@ -134,7 +141,6 @@ struct UpdateIntervalDTO: Content {
     let ms: Int
 }
 
-
 func routes(_ app: Application) throws {
     
     try app.register(collection: TodoController())
@@ -143,6 +149,7 @@ func routes(_ app: Application) throws {
     try app.register(collection: HumidtyController())
     try app.register(collection: AccelerationController())
     
+    // remote board control
     app.post("updateInterval") {  req async throws -> Response  in
         let i = try req.content.decode(UpdateIntervalDTO.self)
         app.updateManager?.updateInterval = i.ms
@@ -156,19 +163,16 @@ func routes(_ app: Application) throws {
         return try await UpdateIntervalDTO(ms: v).encodeResponse(for: req)
     }
     
-    app.get("lastReading") { req async throws -> Response in
-       return try await app.lastReadingManager?.lastReading?.encodeResponse(for: req)  ??
-              .init(status: .noContent)
-    }
-    
     // ui
     app.get("") { req async throws -> View in
+        let host = app.http.server.configuration.hostname
+        let port = app.http.server.configuration.port
         
-        return try await req.view.render("index", ["socketaddr" : "ws://localhost:8080/envrt",
-                                                   "hostname": "localhost:8080"])
+        return try await req.view.render("index", ["socketaddr" : "ws://\(host):\(port)/envrt",
+                                                   "hostname": "\(host):\(port)"])
     }
     
-    // realtime
+    // realtime input
     app.post("envdata") { req async throws -> Response  in
         // decode
         let env = try await EnvDTO.decodeRequest(req)
@@ -185,12 +189,36 @@ func routes(_ app: Application) throws {
         // should return models not env maybe?
         let data = env.toJSON()
         app.lastReadingManager?.lastReading = env
+        
         app.wsConnections?.purgeDisconnectedClients()
         try await app.wsConnections?.broadcast(string: String(data: data, encoding: .utf8)!)
         req.logger.info("accepting")
         return Response(status: .accepted)
     }
     
+    app.get("lastReading") { req async throws -> Response in
+        if let last = app.lastReadingManager?.lastReading {
+            req.logger.info("last = \(last)")
+            return try await last.encodeResponse(for: req)
+        }else {
+            return .init(status: .noContent)
+        }
+    }
+    
+    // paginated
+    /*
+     GET /planets?page=2&per=5 HTTP/1.1
+     The above request would yield a response structured like the following.
+     
+     {
+     "items": [...],
+     "metadata": {
+     "page": 2,
+     "per": 5,
+     "total": 8
+     }
+     }
+     */
     app.get("envdata","temps") { req async throws -> Response in
         
         if let range = try? req.query.decode(DateQueryDTO.self) {
@@ -200,7 +228,7 @@ func routes(_ app: Application) throws {
             let temps = try await Temperature.query(on: req.db)
                 .filter(\.$createdAt >= range.start)
                 .filter(\.$createdAt <= range.end ?? Date())
-                .all()
+                .paginate(for: req)
             
             let coded = try JSONEncoder().encode(temps)
             
@@ -208,15 +236,28 @@ func routes(_ app: Application) throws {
                          body: .init(data: coded))
         }else {
             let temps = try await Temperature.query(on: req.db)
-                .all()
-            
+                                             .paginate(for: req)
+                        
             let coded = try JSONEncoder().encode(temps)
             
             return .init(status: .ok,
                          body: .init(data: coded))
         }
     }
-                     
+    
+    app.get("envdata", "temps", "all") {  req async throws -> Response in
+        
+    
+        
+        let temps = try await Temperature.query(on: req.db)
+                                         .all()
+        
+        let coded = try JSONEncoder().encode(temps)
+        
+        return .init(status: .ok,
+                     body: .init(data: coded))
+    }
+    
     app.get("envdata","hums") { req async throws -> Response in
         if let range = try? req.query.decode(DateQueryDTO.self) {
             req.logger.info("\(range)")
@@ -224,19 +265,30 @@ func routes(_ app: Application) throws {
             let hums = try await Humidity.query(on: req.db)
                 .filter(\.$createdAt >= range.start)
                 .filter(\.$createdAt <= range.end ?? Date())
-                .all()
+                .paginate(for: req)
             
             let coded = try JSONEncoder().encode(hums)
             return .init(status: .ok,
                          body: .init(data: coded))
         }else {
+            
             let hums = try await Humidity.query(on: req.db)
-                .all()
+                                         .paginate(for: req)
             
             let coded = try JSONEncoder().encode(hums)
             return .init(status: .ok,
                          body: .init(data: coded))
         }
+    }
+    
+    app.get("envdata", "hums","all") { req async throws -> Response in
+        
+        let hums = try await Humidity.query(on: req.db)
+            .all()
+        
+        let coded = try JSONEncoder().encode(hums)
+        return .init(status: .ok,
+                     body: .init(data: coded))
     }
     
     app.get("envdata","co2s") { req async throws -> Response in
@@ -247,21 +299,30 @@ func routes(_ app: Application) throws {
             let co2s = try await CO2ppm.query(on: req.db)
                 .filter(\.$createdAt >= range.start)
                 .filter(\.$createdAt <= range.end ?? Date())
-                .all()
-            
+                .paginate(for: req)
+
             let coded = try JSONEncoder().encode(co2s)
             return .init(status: .ok,
                          body: .init(data: coded))
         }else {
             let co2s = try await CO2ppm.query(on: req.db)
-                .all()
+                .paginate(for: req)
+
             let coded = try JSONEncoder().encode(co2s)
             return .init(status: .ok,
                          body: .init(data: coded))
         }
     }
     
-    // realtime
+    app.get("envdata","co2s","all") { req async throws -> Response in
+        let co2s = try await CO2ppm.query(on: req.db)
+                                   .all()
+        let coded = try JSONEncoder().encode(co2s)
+        return .init(status: .ok,
+                     body: .init(data: coded))
+    }
+    
+    // realtime output
     app.webSocket("envrt") { req, ws in
         app.wsConnections?.connected(con: (req,ws))
         req.logger.info("Connected ws for \(req.remoteAddress?.ipAddress ?? "unknown")")

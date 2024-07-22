@@ -18,8 +18,10 @@
         <div class="row">
             <div class="column" id="tempChart">
             </div>
+           
             <div class="column" id="lastTemp">
             </div>
+           
         </div>
         <div class="row">
             <div class="column" id="humChart">
@@ -33,11 +35,20 @@
             <div class="column" id="lastCo2">
             </div>
         </div>
+          <button id="getTempsButton">
+          get temps
+          </button>
+           <button id="getHumsButton">
+          get hums
+          </button>
+           <button id="getCo2sButton">
+          get co2s
+          </button>
         <hr>
         <section>
     </body>
     
-    <script>
+    <script type="module">
         // need to mod this address when serving to the public i think
         // use leaf to template it in dynamically with the fqdn
         
@@ -52,6 +63,7 @@
         // Listen for messages
         socket.addEventListener("message", (event) => {
             console.log("Message from server ", event.data);
+
             const date = new Date();
             const dateStr = date.toLocaleString();
             timestamps.push(dateStr);
@@ -70,11 +82,15 @@
             updateCharts();
             updateGauges();
         });
-        
-        // x
+
+
+        // x - domain
         var timestamps = [];
-        
-        // ys
+        var lastTemp = null;
+        var lastHum = null;
+        var lastCo2 = null;
+
+        // ys - ranges
         var temps = [];
         var hums = [];
         var ppms = [];
@@ -107,11 +123,10 @@
             type: 'scatter'
         };
     
-        function updateCharts() {
+        async function updateCharts() {
             var tempDiv = document.getElementById("lastTemp");
             var humDiv = document.getElementById("lastHum");
             var co2Div = document.getElementById("lastCo2");
-            
             
             var layout = {
                 paper_bgcolor:'rgba(1,1,1,0)',
@@ -124,12 +139,12 @@
                 }
             }
             
-              Plotly.newPlot('tempChart', [trace1], layout);
-              Plotly.newPlot('humChart', [trace2], layout);
-              Plotly.newPlot('co2Chart', [trace3], layout);
+            Plotly.newPlot('tempChart', [trace1], layout);
+            Plotly.newPlot('humChart', [trace2], layout);
+            Plotly.newPlot('co2Chart', [trace3], layout);
         }
         
-        function updateGauges() {
+        async function updateGauges() {
             
             var tdata = [
                         {
@@ -192,6 +207,76 @@
                           }
                           Plotly.newPlot('lastCo2', cdata, layout);
         }
+
+        async function getLastReading() {
+            const url = "https://#(hostname)/lastReading";
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`Response status: ${response.status}`);
+                }
+                
+                const json = await response.json();
+                console.log(json);
+            } catch (error) {
+                console.error(error.message);
+            }
+        }
+     
+        console.log(socket.url);
+        
+        const fetchTempsButton = document.getElementById("getTempsButton");
+        fetchTempsButton.addEventListener("click", async () => {
+            try {
+                console.log("Starting fetch");
+                const response = await fetch("http://#(hostname)/envdata/temps/all");
+                console.log(`Response: ${response.status}`);
+                console.log(`Response: ${response.body}`);
+                for await (const chunk of response.body) {
+                // Do something with each 'chunk'
+                console.log('chunk ' + chunk);
+
+                }
+            } catch (e) {
+                console.error(`Error: ${e}`);
+            }
+        });
+
+        const fetchHumsButton = document.getElementById("getHumsButton");
+
+        fetchHumsButton.addEventListener("click", async () => {
+            try {
+                console.log("Starting fetch");
+                const response = await fetch("http://#(hostname)/envdata/hums/all");
+                console.log(`Response: ${response.status}`);
+                console.log(`Response: ${response.body}`);
+                for await (const chunk of response.body) {
+                // Do something with each 'chunk'
+                console.log('chunk ' + chunk);
+
+                }
+            } catch (e) {
+                console.error(`Error: ${e}`);
+            }
+        });
+
+        const fetchCo2sButton = document.getElementById("getCo2sButton");
+        fetchCo2sButton.addEventListener("click", async () => {
+            try {
+                console.log("Starting fetch");
+                const response = await fetch("http://#(hostname)/envdata/co2s/all");
+                console.log(`Response: ${response.status}`);
+                console.log(`Response: ${response.body}`);
+                for await (const chunk of response.body) {
+                // Do something with each 'chunk'
+                console.log('chunk ' + chunk);
+
+                }
+            } catch (e) {
+                console.error(`Error: ${e}`);
+            }
+        });
+
         
         msg.innerHTML = "Waiting for data..."
     </script>
