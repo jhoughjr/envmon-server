@@ -149,6 +149,21 @@ func routes(_ app: Application) throws {
     try app.register(collection: HumidtyController())
     try app.register(collection: AccelerationController())
     
+//    app.post("users") { req async throws -> User in
+//        try User.Create.validate(content: req)
+//        let create = try req.content.decode(User.Create.self)
+//        guard create.password == create.confirmPassword else {
+//            throw Abort(.badRequest, reason: "Passwords did not match")
+//        }
+//        let user = try User(
+//            name: create.name,
+//            email: create.email,
+//            passwordHash: Bcrypt.hash(create.password)
+//        )
+//        try await user.save(on: req.db)
+//        return user
+//    }
+    
     // remote board control
     app.post("updateInterval") {  req async throws -> Response  in
         let i = try req.content.decode(UpdateIntervalDTO.self)
@@ -167,7 +182,7 @@ func routes(_ app: Application) throws {
     app.get("") { req async throws -> View in
         let host = app.http.server.configuration.hostname
         let port = app.http.server.configuration.port
-        
+
         return try await req.view.render("index", ["socketaddr" : "ws://\(host):\(port)/envrt",
                                                    "hostname": "\(host):\(port)"])
     }
@@ -247,8 +262,6 @@ func routes(_ app: Application) throws {
     
     app.get("envdata", "temps", "all") {  req async throws -> Response in
         
-    
-        
         let temps = try await Temperature.query(on: req.db)
                                          .all()
         
@@ -327,5 +340,6 @@ func routes(_ app: Application) throws {
         app.wsConnections?.connected(con: (req,ws))
         req.logger.info("Connected ws for \(req.remoteAddress?.ipAddress ?? "unknown")")
     }
+
 }
 

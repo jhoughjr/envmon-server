@@ -231,10 +231,9 @@
                 console.log("Starting fetch");
                 const response = await fetch("http://#(hostname)/envdata/temps/all");
                 console.log(`Response: ${response.status}`);
-                console.log(`Response: ${response.body}`);
                 for await (const chunk of response.body) {
                 // Do something with each 'chunk'
-                console.log('chunk ' + chunk);
+                console.log('chunk ' + JSON.parse(chunk));
 
                 }
             } catch (e) {
