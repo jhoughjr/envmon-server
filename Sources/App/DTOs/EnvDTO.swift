@@ -28,7 +28,12 @@ struct EnvDTO: Content {
     }
     
     func toJSON(date: Date?) -> Data {
-        let d = date?.ISO8601Format()
+        var c = ISO8601DateFormatter()
+        var d:String? = nil
+        
+        if let arg = date {
+            d = c.string(from: arg)
+        }
         return
         """
         {
