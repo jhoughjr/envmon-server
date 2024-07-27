@@ -57,7 +57,7 @@ final class WSConnectionManager: Sendable {
         
         
         if let v = application.lastReadingManager?.lastReading {
-                let d = v.toJSON()
+            let d = v.toJSON(date: application.lastReadingManager?.timestamp)
             let s = String(data:d, encoding: .utf8)
             application.logger.info("sending Last Reading")
             application.logger.info(("\(s!)"))
@@ -122,8 +122,8 @@ extension Application {
 }
 
 final class LastReadingManager: Sendable {
-    var lastReading:EnvDTO? = nil
-    
+    var lastReading: EnvDTO? = nil
+    var timestamp: Date? = nil
 }
 
 extension Application {
@@ -180,7 +180,8 @@ func routes(_ app: Application) throws {
     
     // ui
     app.get("") { req async throws -> View in
-        let host = app.http.server.configuration.hostname
+        
+        let host = "localhost"//"jimmyhoughjr.freeddns.org"
         let port = app.http.server.configuration.port
 
         return try await req.view.render("index", ["socketaddr" : "ws://\(host):\(port)/envrt",
@@ -190,20 +191,23 @@ func routes(_ app: Application) throws {
     // realtime input
     app.post("envdata") { req async throws -> Response  in
         // decode
+        let d = Date()
+        
         let env = try await EnvDTO.decodeRequest(req)
         let a = env.toModels()
         
         // store
-        try await a.0.save(on: req.db) // temp
-        try await a.1.save(on: req.db) // hum
-        try await a.2.save(on: req.db) // ppm
-        try await a.3.save(on: req.db) // acc
+        try await a.1.save(on: req.db) // temp
+        try await a.2.save(on: req.db) // hum
+        try await a.3.save(on: req.db) // ppm
+        try await a.4.save(on: req.db) // acc
         
         req.logger.info("notifying webscoket \(app.wsConnections?.connections.count ?? 0) clients")
         // i dont like this
         // should return models not env maybe?
-        let data = env.toJSON()
+        let data = env.toJSON(date: d)
         app.lastReadingManager?.lastReading = env
+        app.lastReadingManager?.timestamp = d
         
         app.wsConnections?.purgeDisconnectedClients()
         try await app.wsConnections?.broadcast(string: String(data: data, encoding: .utf8)!)
@@ -251,7 +255,7 @@ func routes(_ app: Application) throws {
                          body: .init(data: coded))
         }else {
             let temps = try await Temperature.query(on: req.db)
-                                             .paginate(for: req)
+                                             .all()
                         
             let coded = try JSONEncoder().encode(temps)
             

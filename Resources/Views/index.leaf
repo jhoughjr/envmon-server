@@ -35,15 +35,18 @@
             <div class="column" id="lastCo2">
             </div>
         </div>
+        <div class="row">
           <button id="getTempsButton">
           get temps
           </button>
-           <button id="getHumsButton">
+         
+          <button id="getHumsButton">
           get hums
           </button>
            <button id="getCo2sButton">
           get co2s
           </button>
+        </div>
         <hr>
         <section>
     </body>
@@ -64,12 +67,11 @@
         socket.addEventListener("message", (event) => {
             console.log("Message from server ", event.data);
 
-            const date = new Date();
-            const dateStr = date.toLocaleString();
-            timestamps.push(dateStr);
-            
             const o = JSON.parse(event.data);
-            
+            const dateStr = o["timestamp"];
+            const dt = new Date(dateStr);
+
+            timestamps.push(dt.toLocaleString());        
             lastTemp = o["tempC"];
             lastHum = o["hum"];
             lastCo2 = o["co2"];
@@ -229,13 +231,11 @@
         fetchTempsButton.addEventListener("click", async () => {
             try {
                 console.log("Starting fetch");
-                const response = await fetch("http://#(hostname)/envdata/temps/all");
-                console.log(`Response: ${response.status}`);
-                for await (const chunk of response.body) {
-                // Do something with each 'chunk'
-                console.log('chunk ' + JSON.parse(chunk));
+                const response = await doit("http://#(hostname)/envdata/temps/all");
+               
+                let readings = JSON.parse(response);
+                console.log(readings.length);
 
-                }
             } catch (e) {
                 console.error(`Error: ${e}`);
             }
@@ -247,13 +247,7 @@
             try {
                 console.log("Starting fetch");
                 const response = await fetch("http://#(hostname)/envdata/hums/all");
-                console.log(`Response: ${response.status}`);
-                console.log(`Response: ${response.body}`);
-                for await (const chunk of response.body) {
-                // Do something with each 'chunk'
-                console.log('chunk ' + chunk);
-
-                }
+                const result = processChunkedResponse(response);
             } catch (e) {
                 console.error(`Error: ${e}`);
             }
@@ -264,19 +258,27 @@
             try {
                 console.log("Starting fetch");
                 const response = await fetch("http://#(hostname)/envdata/co2s/all");
-                console.log(`Response: ${response.status}`);
-                console.log(`Response: ${response.body}`);
-                for await (const chunk of response.body) {
-                // Do something with each 'chunk'
-                console.log('chunk ' + chunk);
-
-                }
+               
             } catch (e) {
                 console.error(`Error: ${e}`);
             }
         });
 
-        
+      
+        async function doit(url) {
+            const response = await fetch(url)
+            const reader = response.body.getReader()
+            const decoder = new TextDecoder()
+            let result = await reader.read()
+            var val = ""
+            while (!result.done) {
+                const text = decoder.decode(result.value)
+                val += text;
+                result = await reader.read()
+            }
+            return val;
+        }
+
         msg.innerHTML = "Waiting for data..."
     </script>
 </html>

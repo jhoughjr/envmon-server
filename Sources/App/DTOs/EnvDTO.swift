@@ -15,20 +15,24 @@ struct EnvDTO: Content {
     var hum: Float
     var ppm: Int
     var accel: AccelerationDTO
+    var timestamp: Date?
     
-    func toModels() -> (Temperature, Humidity, CO2ppm, Acceleration) {
+    func toModels() -> (Date, Temperature, Humidity, CO2ppm, Acceleration) {
         let d = Date()
         
         let t = Temperature(degreesC: tempC, createdAt:  d)
         let h = Humidity(percentRH: hum, createdAt:  d)
         let c = CO2ppm(co2ppm: ppm, createdAt: d)
         let a = Acceleration(x: accel.x, y: accel.y, z: accel.z, createdAt: d)
-        return (t,h,c,a)
+        return (d,t,h,c,a)
     }
     
-    func toJSON() -> Data {
+    func toJSON(date: Date?) -> Data {
+        let d = date?.ISO8601Format()
+        return
         """
         {
+        \"timestamp" : \"\(d ?? "null")\",
         \"tempC\" : \(self.tempC),
         \"hum\" : \(self.hum),
         \"co2\" : \(self.ppm)
