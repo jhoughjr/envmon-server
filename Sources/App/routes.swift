@@ -181,7 +181,7 @@ func routes(_ app: Application) throws {
     // ui
     app.get("") { req async throws -> View in
         
-        let host = "localhost"//"jimmyhoughjr.freeddns.org"
+        let host = "jimmyhoughjr.freeddns.org"
         let port = app.http.server.configuration.port
 
         return try await req.view.render("index", ["socketaddr" : "ws://\(host):\(port)/envrt",
