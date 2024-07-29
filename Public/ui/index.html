@@ -42,7 +42,7 @@
         // use leaf to template it in dynamically with the fqdn
         
         // Create WebSocket connection.
-        const socket = new WebSocket("ws://localhost:8080/envrt");
+        const socket = new WebSocket("#(socketaddr)");
         
         // Connection opened
         socket.addEventListener("open", (event) => {
