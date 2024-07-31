@@ -28,21 +28,21 @@ struct EnvDTO: Content {
     }
     
     func toJSON(date: Date?) -> Data {
-        var c = ISO8601DateFormatter()
+        let c = ISO8601DateFormatter()
         var d:String? = nil
         
         if let arg = date {
             d = c.string(from: arg)
         }
         return
-        """
-        {
-        \"timestamp" : \"\(d ?? "null")\",
-        \"tempC\" : \(self.tempC),
-        \"hum\" : \(self.hum),
-        \"co2\" : \(self.ppm)
-        }
-        """.data(using: .utf8)!
+            """
+            {
+            \"timestamp" : \"\(d ?? "null")\",
+            \"tempC\" : \(self.tempC),
+            \"hum\" : \(self.hum),
+            \"co2\" : \(self.ppm)
+            }
+            """.data(using: .utf8)!
         
     }
 }

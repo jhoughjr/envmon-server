@@ -3,6 +3,27 @@ import Fluent
 import FluentPostgresDriver
 import Vapor
 import Leaf
+import Rainbow
+
+final class ColorLogger: @unchecked Sendable, Middleware {
+    public let logLevel: Logger.Level
+    
+    public init(logLevel: Logger.Level = .info) {
+        self.logLevel = logLevel
+    }
+    
+    public func respond(to request: Request, chainingTo next: Responder) -> EventLoopFuture<Response> {
+        if let r = request.remoteAddress {
+            let s = "\(r)".yellow.bold
+            let m = Logger.Message(stringLiteral: "\(s) " + "\(request.method) ".green + "\(request.url.path.removingPercentEncoding ?? request.url.path)".lightBlue.bold +
+                                   " [\(request.id)]".yellow)
+            
+            request.logger = Logger(label: "Colorized")
+            request.logger.log(level: self.logLevel, m, metadata: .none)
+        }
+        return next.respond(to: request)
+    }
+}
 
 // configures your application
 public func configure(_ app: Application) async throws {
@@ -14,8 +35,8 @@ public func configure(_ app: Application) async throws {
         username: Environment.get("DATABASE_USERNAME") ?? "vapor_username",
         password: Environment.get("DATABASE_PASSWORD") ?? "vapor_password",
         database: Environment.get("DATABASE_NAME") ?? "envmon_database",
-        tls: .prefer(try .init(configuration: .clientDefault)))
-    ), as: .psql)
+        tls: .prefer(try .init(configuration: .clientDefault))) ),
+                      as: .psql)
 
     // DB - Migrations
     app.migrations.add(CreateTodo())
@@ -25,11 +46,11 @@ public func configure(_ app: Application) async throws {
     app.migrations.add(CreateAcceleration())
     app.migrations.add(User.Migration())
     app.migrations.add(UserToken.Migration())
-
     
-    // Middleware
-    app.middleware.use(FileMiddleware(publicDirectory: app.directory.publicDirectory))
-
+    var mids = Middlewares.init()
+    mids.use(
+        FileMiddleware(publicDirectory: app.directory.publicDirectory))
+    
     // configure CORS
     let corsConfiguration = CORSMiddleware.Configuration(
         allowedOrigin: .all,
@@ -38,9 +59,14 @@ public func configure(_ app: Application) async throws {
     )
     let cors = CORSMiddleware(configuration: corsConfiguration)
     // cors middleware should come before default error middleware using `at: .beginning`
-    app.middleware.use(cors, at: .beginning)
+    mids.use(cors, at: .beginning)
+    // Sessions
+    mids.use(app.sessions.middleware)
+    mids.use(ColorLogger(), at: .beginning)
+    
+    app.middleware = mids
+
     app.views.use(.leaf)
-    app.middleware.use(app.sessions.middleware)
 
     // Business Logic TODO - need to make these properly sendable
     app.wsConnections = WSConnectionManager(application:app)

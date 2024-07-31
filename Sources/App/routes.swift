@@ -1,6 +1,7 @@
 import Fluent
 import Vapor
 import QueuesRedisDriver
+import NIOCore
 
 struct DateQueryDTO:Content {
     let start: Date
@@ -30,14 +31,14 @@ extension Application {
     }
 }
 
-final class WSConnectionManager: Sendable {
+final class WSConnectionManager: @unchecked Sendable {
     
     typealias Connection = (Request, WebSocket)
     
     init(application:Application) {
         self.application = application
     }
-    
+
     var connections = [Connection]()
     
     var application: Application
@@ -61,10 +62,8 @@ final class WSConnectionManager: Sendable {
             let s = String(data:d, encoding: .utf8)
             application.logger.info("sending Last Reading")
             application.logger.info(("\(s!)"))
-//                con.1.send(d)
             con.1.send(s!)
         }
-
     }
     
     func disconnectAll() {
@@ -104,7 +103,7 @@ final class WSConnectionManager: Sendable {
     }
 }
 
-final class UpdateIntervalManager: Sendable {
+final class UpdateIntervalManager: @unchecked Sendable {
     
     var updateInterval:Int = 30_000
     
@@ -121,7 +120,7 @@ extension Application {
     }
 }
 
-final class LastReadingManager: Sendable {
+final class LastReadingManager: @unchecked Sendable {
     var lastReading: EnvDTO? = nil
     var timestamp: Date? = nil
 }
@@ -142,28 +141,7 @@ struct UpdateIntervalDTO: Content {
 }
 
 func routes(_ app: Application) throws {
-    
-    try app.register(collection: TodoController())
-    try app.register(collection: CO2ppmController())
-    try app.register(collection: TemperatureController())
-    try app.register(collection: HumidtyController())
-    try app.register(collection: AccelerationController())
-    
-//    app.post("users") { req async throws -> User in
-//        try User.Create.validate(content: req)
-//        let create = try req.content.decode(User.Create.self)
-//        guard create.password == create.confirmPassword else {
-//            throw Abort(.badRequest, reason: "Passwords did not match")
-//        }
-//        let user = try User(
-//            name: create.name,
-//            email: create.email,
-//            passwordHash: Bcrypt.hash(create.password)
-//        )
-//        try await user.save(on: req.db)
-//        return user
-//    }
-    
+        
     // remote board control
     app.post("updateInterval") {  req async throws -> Response  in
         let i = try req.content.decode(UpdateIntervalDTO.self)
@@ -193,7 +171,7 @@ func routes(_ app: Application) throws {
         // decode
         let d = Date()
         
-        let env = try await EnvDTO.decodeRequest(req)
+        let env: EnvDTO = try await EnvDTO.decodeRequest(req)
         let a = env.toModels()
         
         // store
@@ -215,6 +193,10 @@ func routes(_ app: Application) throws {
         return Response(status: .accepted)
     }
     
+    app.post("register") { req async throws -> Response  in
+        .init(status: .notImplemented)
+    }
+                  
     app.get("lastReading") { req async throws -> Response in
         if let last = app.lastReadingManager?.lastReading {
             req.logger.info("last = \(last)")
