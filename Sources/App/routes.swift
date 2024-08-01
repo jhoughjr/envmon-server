@@ -88,15 +88,15 @@ final class WSConnectionManager: Sendable {
         }
     }
     
-    func broadcast(string: String) async throws {
+    func broadcast(string: String) throws {
         purgeDisconnectedClients()
         for con in connections {
             application.logger.info("sending to \(con.0.id)")
-            try await con.1.send(string)
+            con.1.send(string)
         }
     }
     
-    func broadcast(bytes: ByteBuffer) async throws {
+    func broadcast(bytes: ByteBuffer) throws {
         purgeDisconnectedClients()
         for con in connections {
             con.1.send(bytes)
@@ -191,7 +191,7 @@ func routes(_ app: Application) throws {
         
         if !app.wsConnections!.connections.isEmpty {
             app.wsConnections!.purgeDisconnectedClients()
-            try await app.wsConnections?.broadcast(string: String(data: data, encoding: .utf8)!)
+            try app.wsConnections?.broadcast(string: String(data: data, encoding: .utf8)!)
         }
 
         return Response(status: .accepted)
