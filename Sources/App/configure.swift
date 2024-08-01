@@ -14,7 +14,7 @@ public func configure(_ app: Application) async throws {
 
     // Business Logic TODO - need to make these properly sendable
     app.wsConnections = WSConnectionManager(application:app)
-
+    app.lifecycle.use(Hello())
     // register routes
     try routes(app)
 }
@@ -59,4 +59,22 @@ func myMiddleware(for app: Application) -> Middlewares {
     // color logging
     mids.use(ColorLogger(), at: .beginning)
     return mids
+}
+
+
+struct Hello: LifecycleHandler {
+    // Called before application boots.
+    func willBoot(_ app: Application) throws {
+        app.logger.info("Hello!")
+    }
+    
+    // Called after application boots.
+    func didBoot(_ app: Application) throws {
+        app.logger.info("Server is running")
+    }
+    
+    // Called before application shutdown.
+    func shutdown(_ app: Application) {
+        app.logger.info("Goodbye!")
+    }
 }

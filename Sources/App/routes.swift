@@ -43,7 +43,7 @@ final actor WSConnectionManager: Sendable {
     
     var application: Application
     
-    func connected(con: Connection) {
+    func connected(con: Connection) async {
         // cache the connection
         connections.append(con)
         
