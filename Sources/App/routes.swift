@@ -180,16 +180,17 @@ func routes(_ app: Application) throws {
         try await a.3.save(on: req.db) // ppm
         try await a.4.save(on: req.db) // acc
         
-        req.logger.info("notifying webscoket \(app.wsConnections?.connections.count ?? 0) clients")
         // i dont like this
         // should return models not env maybe?
         let data = env.toJSON(date: d)
         app.lastReadingManager?.lastReading = env
         app.lastReadingManager?.timestamp = d
         
-        app.wsConnections?.purgeDisconnectedClients()
-        try await app.wsConnections?.broadcast(string: String(data: data, encoding: .utf8)!)
-        req.logger.info("accepting")
+        if !app.wsConnections!.connections.isEmpty {
+            app.wsConnections!.purgeDisconnectedClients()
+            try await app.wsConnections?.broadcast(string: String(data: data, encoding: .utf8)!)
+        }
+
         return Response(status: .accepted)
     }
     
@@ -322,6 +323,7 @@ func routes(_ app: Application) throws {
     }
     
     // realtime output
+    
     app.webSocket("envrt") { req, ws in
         app.wsConnections?.connected(con: (req,ws))
         req.logger.info("Connected ws for \(req.remoteAddress?.ipAddress ?? "unknown")")
