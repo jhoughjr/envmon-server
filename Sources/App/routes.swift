@@ -31,7 +31,7 @@ extension Application {
     }
 }
 
-final actor WSConnectionManager: Sendable {
+final class WSConnectionManager: Sendable {
     
     typealias Connection = (Request, WebSocket)
     
@@ -189,8 +189,8 @@ func routes(_ app: Application) throws {
 //        app.lastReadingManager?.lastReading = env
 //        app.lastReadingManager?.timestamp = d
         
-        if await !app.wsConnections!.connections.isEmpty {
-            await app.wsConnections!.purgeDisconnectedClients()
+        if !app.wsConnections!.connections.isEmpty {
+            app.wsConnections!.purgeDisconnectedClients()
             try await app.wsConnections?.broadcast(string: String(data: data, encoding: .utf8)!)
         }
 
