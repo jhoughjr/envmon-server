@@ -3,31 +3,23 @@ import Fluent
 import FluentPostgresDriver
 import Vapor
 import Leaf
-import Rainbow
 
-final class ColorLogger: @unchecked Sendable, Middleware {
-    public let logLevel: Logger.Level
-    
-    public init(logLevel: Logger.Level = .info) {
-        self.logLevel = logLevel
-    }
-    
-    public func respond(to request: Request, chainingTo next: Responder) -> EventLoopFuture<Response> {
-        if let r = request.remoteAddress {
-            let s = "\(r)".yellow.bold
-            let m = Logger.Message(stringLiteral: "\(s) " + "\(request.method) ".green + "\(request.url.path.removingPercentEncoding ?? request.url.path)".lightBlue.bold +
-                                   " [\(request.id)]".yellow)
-            
-            request.logger = Logger(label: "Colorized")
-            request.logger.log(level: self.logLevel, m, metadata: .none)
-        }
-        return next.respond(to: request)
-    }
-}
 
 // configures your application
 public func configure(_ app: Application) async throws {
         
+    try database(for: app)
+    app.views.use(.leaf)
+    app.middleware = myMiddleware(for: app)
+
+    // Business Logic TODO - need to make these properly sendable
+    app.wsConnections = WSConnectionManager(application:app)
+
+    // register routes
+    try routes(app)
+}
+
+func database(for app: Application) throws  {
     // DB - connection
     app.databases.use(DatabaseConfigurationFactory.postgres(configuration: .init(
         hostname: Environment.get("DATABASE_HOST") ?? "localhost",
@@ -37,7 +29,7 @@ public func configure(_ app: Application) async throws {
         database: Environment.get("DATABASE_NAME") ?? "envmon_database",
         tls: .prefer(try .init(configuration: .clientDefault))) ),
                       as: .psql)
-
+    
     // DB - Migrations
     app.migrations.add(CreateTodo())
     app.migrations.add(CreateTemperature())
@@ -46,7 +38,9 @@ public func configure(_ app: Application) async throws {
     app.migrations.add(CreateAcceleration())
     app.migrations.add(User.Migration())
     app.migrations.add(UserToken.Migration())
-    
+}
+
+func myMiddleware(for app: Application) -> Middlewares {
     var mids = Middlewares.init()
     mids.use(
         FileMiddleware(publicDirectory: app.directory.publicDirectory))
@@ -59,20 +53,10 @@ public func configure(_ app: Application) async throws {
     )
     let cors = CORSMiddleware(configuration: corsConfiguration)
     // cors middleware should come before default error middleware using `at: .beginning`
-    mids.use(cors, at: .beginning)
+    mids.use(cors)
     // Sessions
     mids.use(app.sessions.middleware)
+    // color logging
     mids.use(ColorLogger(), at: .beginning)
-    
-    app.middleware = mids
-
-    app.views.use(.leaf)
-
-    // Business Logic TODO - need to make these properly sendable
-    app.wsConnections = WSConnectionManager(application:app)
-    app.updateManager = UpdateIntervalManager()
-    app.lastReadingManager = LastReadingManager()
-    
-    // register routes
-    try routes(app)
+    return mids
 }

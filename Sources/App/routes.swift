@@ -11,14 +11,14 @@ struct DateQueryDTO:Content {
 struct wsConManKey: StorageKey {
     typealias Value = WSConnectionManager
 }
-
-struct updaterKey: StorageKey {
-    typealias Value = UpdateIntervalManager
-}
-
-struct lasytReadingKey: StorageKey {
-    typealias Value = LastReadingManager
-}
+//
+//struct updaterKey: StorageKey {
+//    typealias Value = UpdateIntervalManager
+//}
+//
+//struct lasytReadingKey: StorageKey {
+//    typealias Value = LastReadingManager
+//}
 
 extension Application {
     var wsConnections: WSConnectionManager? {
@@ -31,14 +31,14 @@ extension Application {
     }
 }
 
-final class WSConnectionManager: @unchecked Sendable {
+final actor WSConnectionManager: Sendable {
     
     typealias Connection = (Request, WebSocket)
     
     init(application:Application) {
         self.application = application
     }
-
+    
     var connections = [Connection]()
     
     var application: Application
@@ -56,14 +56,15 @@ final class WSConnectionManager: @unchecked Sendable {
             con.0.logger.info("\(bytes.readableBytes) bytes")
         }
         
+        //TODO: send last reading
         
-        if let v = application.lastReadingManager?.lastReading {
-            let d = v.toJSON(date: application.lastReadingManager?.timestamp)
-            let s = String(data:d, encoding: .utf8)
-            application.logger.info("sending Last Reading")
-            application.logger.info(("\(s!)"))
-            con.1.send(s!)
-        }
+//        if let v = application.lastReadingManager?.lastReading {
+//            let d = v.toJSON(date: application.lastReadingManager?.timestamp)
+//            let s = String(data:d, encoding: .utf8)
+//            application.logger.info("sending Last Reading")
+//            application.logger.info(("\(s!)"))
+//            con.1.send(s!)
+//        }
     }
     
     func disconnectAll() {
@@ -103,38 +104,38 @@ final class WSConnectionManager: @unchecked Sendable {
     }
 }
 
-final class UpdateIntervalManager: @unchecked Sendable {
-    
-    var updateInterval:Int = 30_000
-    
-}
+//final class UpdateIntervalManager: @unchecked Sendable {
+//    
+//    var updateInterval:Int = 30_000
+//    
+//}
 
-extension Application {
-    var updateManager: UpdateIntervalManager? {
-        get {
-            self.storage[updaterKey.self]
-        }
-        set {
-            self.storage[updaterKey.self] = newValue
-        }
-    }
-}
+//extension Application {
+//    var updateManager: UpdateIntervalManager? {
+//        get {
+//            self.storage[updaterKey.self]
+//        }
+//        set {
+//            self.storage[updaterKey.self] = newValue
+//        }
+//    }
+//}
+//
+//final class LastReadingManager: @unchecked Sendable {
+//    var lastReading: EnvDTO? = nil
+//    var timestamp: Date? = nil
+//}
 
-final class LastReadingManager: @unchecked Sendable {
-    var lastReading: EnvDTO? = nil
-    var timestamp: Date? = nil
-}
-
-extension Application {
-    var lastReadingManager: LastReadingManager? {
-        get {
-            self.storage[lasytReadingKey.self]
-        }
-        set {
-            self.storage[lasytReadingKey.self] = newValue
-        }
-    }
-}
+//extension Application {
+//    var lastReadingManager: LastReadingManager? {
+//        get {
+//            self.storage[lasytReadingKey.self]
+//        }
+//        set {
+//            self.storage[lasytReadingKey.self] = newValue
+//        }
+//    }
+//}
 
 struct UpdateIntervalDTO: Content {
     let ms: Int
@@ -143,18 +144,18 @@ struct UpdateIntervalDTO: Content {
 func routes(_ app: Application) throws {
         
     // remote board control
-    app.post("updateInterval") {  req async throws -> Response  in
-        let i = try req.content.decode(UpdateIntervalDTO.self)
-        app.updateManager?.updateInterval = i.ms
-        
-        return .init(status: .ok)
-    }
-    
-    // need to update hw to dl this and consume it
-    app.get("updateInterval") {  req async throws -> Response  in
-        let v = app.updateManager?.updateInterval ?? 30_000
-        return try await UpdateIntervalDTO(ms: v).encodeResponse(for: req)
-    }
+//    app.post("updateInterval") {  req async throws -> Response  in
+//        let i = try req.content.decode(UpdateIntervalDTO.self)
+//        app.updateManager?.updateInterval = i.ms
+//        
+//        return .init(status: .ok)
+//    }
+//    
+//    // need to update hw to dl this and consume it
+//    app.get("updateInterval") {  req async throws -> Response  in
+//        let v = app.updateManager?.updateInterval ?? 30_000
+//        return try await UpdateIntervalDTO(ms: v).encodeResponse(for: req)
+//    }
     
     // ui
     app.get("") { req async throws -> View in
@@ -163,7 +164,8 @@ func routes(_ app: Application) throws {
         let port = app.http.server.configuration.port
 
         return try await req.view.render("index", ["socketaddr" : "ws://\(host):\(port)/envrt",
-                                                   "hostname": "\(host):\(port)"])
+                                                   "hostname": "\(host):\(port)",
+                                                   "protocol" :"http"])
     }
     
     // realtime input
@@ -183,11 +185,12 @@ func routes(_ app: Application) throws {
         // i dont like this
         // should return models not env maybe?
         let data = env.toJSON(date: d)
-        app.lastReadingManager?.lastReading = env
-        app.lastReadingManager?.timestamp = d
         
-        if !app.wsConnections!.connections.isEmpty {
-            app.wsConnections!.purgeDisconnectedClients()
+//        app.lastReadingManager?.lastReading = env
+//        app.lastReadingManager?.timestamp = d
+        
+        if await !app.wsConnections!.connections.isEmpty {
+            await app.wsConnections!.purgeDisconnectedClients()
             try await app.wsConnections?.broadcast(string: String(data: data, encoding: .utf8)!)
         }
 
@@ -198,14 +201,14 @@ func routes(_ app: Application) throws {
         .init(status: .notImplemented)
     }
                   
-    app.get("lastReading") { req async throws -> Response in
-        if let last = app.lastReadingManager?.lastReading {
-            req.logger.info("last = \(last)")
-            return try await last.encodeResponse(for: req)
-        }else {
-            return .init(status: .noContent)
-        }
-    }
+//    app.get("lastReading") { req async throws -> Response in
+//        if let last = app.lastReadingManager?.lastReading {
+//            req.logger.info("last = \(last)")
+//            return try await last.encodeResponse(for: req)
+//        }else {
+//            return .init(status: .noContent)
+//        }
+//    }
     
     // paginated
     /*
@@ -325,8 +328,10 @@ func routes(_ app: Application) throws {
     // realtime output
     
     app.webSocket("envrt") { req, ws in
-        app.wsConnections?.connected(con: (req,ws))
-        req.logger.info("Connected ws for \(req.remoteAddress?.ipAddress ?? "unknown")")
+        Task {
+            await app.wsConnections?.connected(con: (req,ws))
+            req.logger.info("Connected ws for \(req.remoteAddress?.ipAddress ?? "unknown")")
+        }
     }
 
 }
