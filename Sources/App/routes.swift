@@ -328,10 +328,8 @@ func routes(_ app: Application) throws {
     // realtime output
     
     app.webSocket("envrt") { req, ws in
-        Task {
             await app.wsConnections?.connected(con: (req,ws))
             req.logger.info("Connected ws for \(req.remoteAddress?.ipAddress ?? "unknown")")
-        }
     }
 
 }
