@@ -11,14 +11,6 @@ struct DateQueryDTO:Content {
 struct wsConManKey: StorageKey {
     typealias Value = WSConnectionManager
 }
-//
-//struct updaterKey: StorageKey {
-//    typealias Value = UpdateIntervalManager
-//}
-//
-//struct lasytReadingKey: StorageKey {
-//    typealias Value = LastReadingManager
-//}
 
 extension Application {
     var wsConnections: WSConnectionManager? {
@@ -137,9 +129,9 @@ final class WSConnectionManager: Sendable {
 //    }
 //}
 
-struct UpdateIntervalDTO: Content {
-    let ms: Int
-}
+//struct UpdateIntervalDTO: Content {
+//    let ms: Int
+//}
 
 func routes(_ app: Application) throws {
         
