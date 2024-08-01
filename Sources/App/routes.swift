@@ -43,7 +43,7 @@ final class WSConnectionManager: Sendable {
     
     var application: Application
     
-    func connected(con: Connection) async {
+    func connected(con: Connection) {
         // cache the connection
         connections.append(con)
         
@@ -328,7 +328,7 @@ func routes(_ app: Application) throws {
     // realtime output
     
     app.webSocket("envrt") { req, ws in
-            await app.wsConnections?.connected(con: (req,ws))
+            app.wsConnections?.connected(con: (req,ws))
             req.logger.info("Connected ws for \(req.remoteAddress?.ipAddress ?? "unknown")")
     }
 
