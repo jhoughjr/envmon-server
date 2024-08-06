@@ -52,6 +52,10 @@
     </body>
     
     <script type="module">
+    
+        function celcToFahr( n ) {
+            return ((n * 9.0 / 5.0) + 32.0);
+        }
         // need to mod this address when serving to the public i think
         // use leaf to template it in dynamically with the fqdn
         
@@ -278,7 +282,7 @@
             }
             return val;
         }
-
+        await getLastReading()
         msg.innerHTML = "Waiting for data..."
     </script>
 </html>
