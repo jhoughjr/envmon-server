@@ -50,12 +50,13 @@ func routes(_ app: Application) throws {
         
         app.lastReadingManager?.lastReading = env
         app.lastReadingManager?.timestamp = d
-        if let a = await app.wsManager?.connections, !a.isEmpty {
+        
+        if !WSConnectionManager.shared.connections.isEmpty {
             
-            await app.wsManager?.purgeDisconnectedClients()
+            WSConnectionManager.shared.purgeDisconnectedClients()
             
             if let shit = String(data: data, encoding: .utf8) {
-                try await app.wsManager?.broadcast(string: shit)
+                WSConnectionManager.shared.broadcast(string: shit)
             }
         }
 
@@ -191,12 +192,8 @@ func routes(_ app: Application) throws {
     }
     
     // realtime output
-    
     app.webSocket("envrt") { req, ws in
-            
-            try? await WSConnectionManager.shared.connected(con: (req,ws))
-         
-
+       WSConnectionManager.shared.connected(con: (req,ws))
     }
 
 }

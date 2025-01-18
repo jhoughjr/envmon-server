@@ -11,9 +11,6 @@ struct LastReadingKey: StorageKey {
     typealias Value = LastReadingManager
 }
 
-struct wsConManKey: StorageKey {
-    typealias Value = WSConnectionManager
-}
 
 struct UpdateKey: StorageKey {
     typealias Value = UpdateIntervalManager

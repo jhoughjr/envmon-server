@@ -27,7 +27,7 @@ public func configure(_ app: Application) async throws {
 
     app.views.use(.leaf)
     
-    app.wsManager = .init()
+//    app.wsManager = .init()
 
     // register routes
     try routes(app)

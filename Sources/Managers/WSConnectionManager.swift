@@ -6,21 +6,25 @@
 //
 
 import Vapor
+import NIOCore
+import NIOExtras
 
-actor WSConnectionManager  {
+final class WSConnectionManager {
     
     typealias Connection = (Request, WebSocket)
-    static let shared: WSConnectionManager = .init()
+    nonisolated(unsafe) static let shared: WSConnectionManager = .init()
     
 //    init(application:Application) {
 //        self.application = application
 //    }
+//    let box = NIOLoopBoundBox.init([Connection](),
+//                                   eventLoo
     
-    var connections = [Connection]()
     
 //    weak var application: Application?
+    var connections = [Connection]()
     
-    func connected(con: Connection) throws {
+    func connected(con: Connection) {
         // cache the connection
         connections.append(con)
         
@@ -44,17 +48,17 @@ actor WSConnectionManager  {
 //        }
     }
     
-    func disconnectAll() async throws {
+    func disconnectAll()  {
         for con in connections {
-            _ = try await con.1.close(code: .normalClosure)
+            _ =  con.1.close(code: .normalClosure)
         }
     }
     
-    func disconnect(con: Connection) async throws {
-        _ = try await con.1.close(code: .normalClosure)
+    func disconnect(con: Connection) {
+        _ =  con.1.close(code: .normalClosure)
     }
     
-    func purgeDisconnectedClients() async {
+    func purgeDisconnectedClients() {
         for con in connections {
             if con.1.isClosed {
                 connections.removeAll { comp in
@@ -64,30 +68,17 @@ actor WSConnectionManager  {
         }
     }
     
-    func broadcast(string: String) async throws {
-        await purgeDisconnectedClients()
+    func broadcast(string: String) {
+        purgeDisconnectedClients()
         for con in connections {
-            try await con.1.send(string)
+            con.1.send(string)
         }
     }
     
-    func broadcast(bytes: ByteBuffer) async throws {
-        await purgeDisconnectedClients()
+    func broadcast(bytes: ByteBuffer) {
+        purgeDisconnectedClients()
         for con in connections {
             con.1.send(bytes)
         }
     }
 }
-
-extension Application {
-    
-    var wsManager: WSConnectionManager? {
-        get {
-            self.storage[wsConManKey.self]
-        }
-        set {
-            self.storage[wsConManKey.self] = newValue
-        }
-    }
-}
-
