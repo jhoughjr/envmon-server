@@ -1,4 +1,4 @@
-// swift-tools-version:5.10
+// swift-tools-version:6.0
 import PackageDescription
 
 let package = Package(
@@ -21,7 +21,7 @@ let package = Package(
     ],
     targets: [
         .executableTarget(
-            name: "App",
+            name: "envmon-server",
             dependencies: [
                 .product(name: "Fluent", package: "fluent"),
                 .product(name: "FluentPostgresDriver", package: "fluent-postgres-driver"),
@@ -33,7 +33,7 @@ let package = Package(
 
             ],
             resources: [
-//                .copy("Public/")
+                .copy("Public/")
             ],
             swiftSettings: swiftSettings
             
@@ -41,7 +41,7 @@ let package = Package(
         .testTarget(
             name: "AppTests",
             dependencies: [
-                .target(name: "App"),
+                .target(name: "envmon-server"),
                 .product(name: "XCTVapor", package: "vapor"),
             ],
             swiftSettings: swiftSettings

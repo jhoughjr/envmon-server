@@ -96,58 +96,58 @@ final class WSConnectionManager: Sendable {
     }
 }
 
-//final class UpdateIntervalManager: @unchecked Sendable {
-//    
-//    var updateInterval:Int = 30_000
-//    
-//}
+final class UpdateIntervalManager: @unchecked Sendable {
+    
+    var updateInterval:Int = 30_000
+    
+}
 
-//extension Application {
-//    var updateManager: UpdateIntervalManager? {
-//        get {
-//            self.storage[updaterKey.self]
-//        }
-//        set {
-//            self.storage[updaterKey.self] = newValue
-//        }
-//    }
-//}
+extension Application {
+    var updateManager: UpdateIntervalManager? {
+        get {
+            self.storage[updaterKey.self]
+        }
+        set {
+            self.storage[updaterKey.self] = newValue
+        }
+    }
+}
 //
-//final class LastReadingManager: @unchecked Sendable {
-//    var lastReading: EnvDTO? = nil
-//    var timestamp: Date? = nil
-//}
+final class LastReadingManager: @unchecked Sendable {
+    var lastReading: EnvDTO? = nil
+    var timestamp: Date? = nil
+}
 
-//extension Application {
-//    var lastReadingManager: LastReadingManager? {
-//        get {
-//            self.storage[lasytReadingKey.self]
-//        }
-//        set {
-//            self.storage[lasytReadingKey.self] = newValue
-//        }
-//    }
-//}
+extension Application {
+    var lastReadingManager: LastReadingManager? {
+        get {
+            self.storage[lasytReadingKey.self]
+        }
+        set {
+            self.storage[lasytReadingKey.self] = newValue
+        }
+    }
+}
 
-//struct UpdateIntervalDTO: Content {
-//    let ms: Int
-//}
+struct UpdateIntervalDTO: Content {
+    let ms: Int
+}
 
 func routes(_ app: Application) throws {
         
-    // remote board control
-//    app.post("updateInterval") {  req async throws -> Response  in
-//        let i = try req.content.decode(UpdateIntervalDTO.self)
-//        app.updateManager?.updateInterval = i.ms
-//        
-//        return .init(status: .ok)
-//    }
-//    
-//    // need to update hw to dl this and consume it
-//    app.get("updateInterval") {  req async throws -> Response  in
-//        let v = app.updateManager?.updateInterval ?? 30_000
-//        return try await UpdateIntervalDTO(ms: v).encodeResponse(for: req)
-//    }
+//     remote board control
+    app.post("updateInterval") {  req async throws -> Response  in
+        let i = try req.content.decode(UpdateIntervalDTO.self)
+        app.updateManager?.updateInterval = i.ms
+        
+        return .init(status: .ok)
+    }
+    
+    // need to update hw to dl this and consume it
+    app.get("updateInterval") {  req async throws -> Response  in
+        let v = app.updateManager?.updateInterval ?? 30_000
+        return try await UpdateIntervalDTO(ms: v).encodeResponse(for: req)
+    }
     
     // ui
     app.get("") { req async throws -> View in
