@@ -27,14 +27,14 @@ final class WSConnectionManager {
     func connected(con: Connection) {
         // cache the connection
         connections.append(con)
-        
+        con.0.logger.info("connections \(connections.count)")
         // add message handlers
         con.1.onText { ws, text in
-            con.0.logger.info("\(text)")
+            con.0.logger.info("ws sent text:\(text)")
         }
         
         con.1.onBinary { ws, bytes in
-            con.0.logger.info("\(bytes.readableBytes) bytes")
+            con.0.logger.info("ws sent bytes:\(bytes.readableBytes) bytes")
         }
         
         //TODO: send last reading
