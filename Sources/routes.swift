@@ -8,8 +8,16 @@ struct DateQueryDTO:Content {
     let end: Date?
 }
 
+struct LastReadingKey: StorageKey {
+    typealias Value = LastReadingManager
+}
+
 struct wsConManKey: StorageKey {
     typealias Value = WSConnectionManager
+}
+
+struct UpdateKey: StorageKey {
+    typealias Value = UpdateIntervalManager
 }
 
 extension Application {
@@ -23,7 +31,7 @@ extension Application {
     }
 }
 
-final class WSConnectionManager: Sendable {
+actor WSConnectionManager: Sendable {
     
     typealias Connection = (Request, WebSocket)
     
@@ -105,10 +113,10 @@ final class UpdateIntervalManager: @unchecked Sendable {
 extension Application {
     var updateManager: UpdateIntervalManager? {
         get {
-            self.storage[updaterKey.self]
+            self.storage[UpdateKey.self]
         }
         set {
-            self.storage[updaterKey.self] = newValue
+            self.storage[UpdateKey.self] = newValue
         }
     }
 }
@@ -121,10 +129,10 @@ final class LastReadingManager: @unchecked Sendable {
 extension Application {
     var lastReadingManager: LastReadingManager? {
         get {
-            self.storage[lasytReadingKey.self]
+            self.storage[LastReadingKey.self]
         }
         set {
-            self.storage[lasytReadingKey.self] = newValue
+            self.storage[LastReadingKey.self] = newValue
         }
     }
 }
@@ -181,9 +189,9 @@ func routes(_ app: Application) throws {
         app.lastReadingManager?.lastReading = env
         app.lastReadingManager?.timestamp = d
         
-        if !app.wsConnections!.connections.isEmpty {
-            app.wsConnections!.purgeDisconnectedClients()
-            try app.wsConnections?.broadcast(string: String(data: data, encoding: .utf8)!)
+        if await !app.wsConnections!.connections.isEmpty {
+            await app.wsConnections!.purgeDisconnectedClients()
+            try await app.wsConnections?.broadcast(string: String(data: data, encoding: .utf8)!)
         }
 
         return Response(status: .accepted)
@@ -320,8 +328,10 @@ func routes(_ app: Application) throws {
     // realtime output
     
     app.webSocket("envrt") { req, ws in
-            app.wsConnections?.connected(con: (req,ws))
+        Task {
+            await app.wsConnections?.connected(con: (req,ws))
             req.logger.info("Connected ws for \(req.remoteAddress?.ipAddress ?? "unknown")")
+        }
     }
 
 }

@@ -71,8 +71,13 @@ extension User.Create: Validatable {
 }
 
 extension User: ModelAuthenticatable {
-    static let usernameKey = \User.$email
-    static let passwordHashKey = \User.$passwordHash
+    static var usernameKey: KeyPath<User, Field<String>> {
+        \User.$email
+    }
+    
+    static var passwordHashKey: KeyPath<User, Field<String>> {
+        \User.$passwordHash
+    }
     
     func verify(password: String) throws -> Bool {
         try Bcrypt.verify(password, created: self.passwordHash)
@@ -80,12 +85,12 @@ extension User: ModelAuthenticatable {
 }
 
 extension User {
-    func generateToken() throws -> UserToken {
-        try .init(
-            value: [UInt8].random(count: 16).base64,
-            userID: self.requireID()
-        )
-    }
+//    func generateToken() throws -> UserToken {
+//        try .init(
+//            value: [UInt8].random(count: 16).base64,
+//            userID: self.requireID()
+//        )
+//    }
 }
 
 extension User: SessionAuthenticatable {

@@ -4,7 +4,7 @@ import PackageDescription
 let package = Package(
     name: "envmon-server",
     platforms: [
-       .macOS(.v14)
+        .macOS(.v14)
     ],
     dependencies: [
         // 💧 A server-side Swift web framework.
@@ -16,8 +16,6 @@ let package = Package(
         .package(url: "https://github.com/vapor/leaf.git", from: "4.0.0"),
         .package(url: "https://github.com/vapor/queues-redis-driver.git", from: "1.0.0"),
         .package(url: "https://github.com/onevcat/Rainbow", .upToNextMajor(from: "4.0.0")),
-
-      
     ],
     targets: [
         .executableTarget(
@@ -29,27 +27,14 @@ let package = Package(
                 .product(name: "Leaf", package: "leaf"),
                 .product(name: "QueuesRedisDriver", package: "queues-redis-driver"),
                 .product(name: "Rainbow", package: "Rainbow"),
-
-
-            ],
-            resources: [
-                .copy("Public/")
-            ],
-            swiftSettings: swiftSettings
-            
+            ]
         ),
         .testTarget(
-            name: "AppTests",
+            name: "envmon-tests",
             dependencies: [
                 .target(name: "envmon-server"),
                 .product(name: "XCTVapor", package: "vapor"),
-            ],
-            swiftSettings: swiftSettings
-        )
+            ]
+        ),
     ]
 )
-
-var swiftSettings: [SwiftSetting] { [
-    .enableUpcomingFeature("DisableOutwardActorInference"),
-    .enableExperimentalFeature("StrictConcurrency"),
-] }
