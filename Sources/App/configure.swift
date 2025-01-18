@@ -22,10 +22,10 @@ public func configure(_ app: Application) async throws {
 func database(for app: Application) throws  {
     // DB - connection
     app.databases.use(DatabaseConfigurationFactory.postgres(configuration: .init(
-        hostname: Environment.get("DATABASE_HOST") ?? "localhost",
+        hostname: Environment.get("DATABASE_HOST") ?? "db",
         port: Environment.get("DATABASE_PORT").flatMap(Int.init(_:)) ?? SQLPostgresConfiguration.ianaPortNumber,
-        username: Environment.get("DATABASE_USERNAME") ?? "vapor_username",
-        password: Environment.get("DATABASE_PASSWORD") ?? "vapor_password",
+        username: Environment.get("DATABASE_USERNAME") ?? "envmon_username",
+        password: Environment.get("DATABASE_PASSWORD") ?? "envmon_password",
         database: Environment.get("DATABASE_NAME") ?? "envmon_database",
         tls: .prefer(try .init(configuration: .clientDefault))) ),
                       as: .psql)
