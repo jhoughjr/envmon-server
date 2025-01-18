@@ -7,7 +7,7 @@
 
 import Vapor
 
-actor WSConnectionManager: Sendable {
+actor WSConnectionManager  {
     
     typealias Connection = (Request, WebSocket)
     
@@ -17,7 +17,7 @@ actor WSConnectionManager: Sendable {
     
     var connections = [Connection]()
     
-    var application: Application
+    weak var application: Application?
     
     func connected(con: Connection) {
         // cache the connection
@@ -34,11 +34,11 @@ actor WSConnectionManager: Sendable {
         
         //TODO: send last reading
         
-        if let v = application.lastReadingManager?.lastReading {
-            let d = v.toJSON(date: application.lastReadingManager?.timestamp)
+        if let v = application?.lastReadingManager?.lastReading {
+            let d = v.toJSON(date: application?.lastReadingManager?.timestamp)
             let s = String(data:d, encoding: .utf8)
-            application.logger.info("sending Last Reading")
-            application.logger.info(("\(s!)"))
+            application?.logger.info("sending Last Reading")
+            application?.logger.info(("\(s!)"))
             con.1.send(s!)
         }
     }
@@ -56,7 +56,7 @@ actor WSConnectionManager: Sendable {
     func purgeDisconnectedClients() {
         for con in connections {
             if con.1.isClosed {
-                application.logger.info("purging \(con.0.id)")
+                application?.logger.info("purging \(con.0.id)")
                 connections.removeAll { comp in
                     comp.0.id == con.0.id
                 }
@@ -67,7 +67,7 @@ actor WSConnectionManager: Sendable {
     func broadcast(string: String) throws {
         purgeDisconnectedClients()
         for con in connections {
-            application.logger.info("sending to \(con.0.id)")
+            application?.logger.info("sending to \(con.0.id)")
             con.1.send(string)
         }
     }
@@ -79,6 +79,7 @@ actor WSConnectionManager: Sendable {
         }
     }
 }
+
 extension Application {
     var wsManager: WSConnectionManager? {
         get {
