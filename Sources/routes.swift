@@ -3,13 +3,6 @@ import Vapor
 import QueuesRedisDriver
 import NIOCore
 
-
-
-
-
-
-
-
 func routes(_ app: Application) throws {
         
 //     remote board control
@@ -200,11 +193,11 @@ func routes(_ app: Application) throws {
     // realtime output
     
     app.webSocket("envrt") { req, ws in
-        Task {
+        
             let fuck = app.wsManager
             await fuck?.connected(con: (req,ws))
             req.logger.info("Connected ws for \(req.remoteAddress?.ipAddress ?? "unknown") to \(fuck)")
-        }
+        
     }
 
 }
