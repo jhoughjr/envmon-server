@@ -19,7 +19,7 @@ actor WSConnectionManager  {
     
     weak var application: Application?
     
-    func connected(con: Connection) {
+    func connected(con: Connection) async throws {
         // cache the connection
         connections.append(con)
         
@@ -39,21 +39,21 @@ actor WSConnectionManager  {
             let s = String(data:d, encoding: .utf8)
             application?.logger.info("sending Last Reading")
             application?.logger.info(("\(s!)"))
-            con.1.send(s!)
+            try await con.1.send(s!)
         }
     }
     
-    func disconnectAll() {
+    func disconnectAll() async throws {
         for con in connections {
-            _ = con.1.close(code: .normalClosure)
+            _ = try await con.1.close(code: .normalClosure)
         }
     }
     
-    func disconnect(con: Connection) {
-        _ = con.1.close(code: .normalClosure)
+    func disconnect(con: Connection) async throws {
+        _ = try await con.1.close(code: .normalClosure)
     }
     
-    func purgeDisconnectedClients() {
+    func purgeDisconnectedClients() async {
         for con in connections {
             if con.1.isClosed {
                 application?.logger.info("purging \(con.0.id)")
@@ -64,16 +64,16 @@ actor WSConnectionManager  {
         }
     }
     
-    func broadcast(string: String) throws {
-        purgeDisconnectedClients()
+    func broadcast(string: String) async throws {
+        await purgeDisconnectedClients()
         for con in connections {
             application?.logger.info("sending to \(con.0.id)")
-            con.1.send(string)
+            try await con.1.send(string)
         }
     }
     
-    func broadcast(bytes: ByteBuffer) throws {
-        purgeDisconnectedClients()
+    func broadcast(bytes: ByteBuffer) async throws {
+        await purgeDisconnectedClients()
         for con in connections {
             con.1.send(bytes)
         }
