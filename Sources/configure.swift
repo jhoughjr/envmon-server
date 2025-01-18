@@ -10,11 +10,11 @@ public func configure(_ app: Application) async throws {
     // app.middleware.use(FileMiddleware(publicDirectory: app.directory.publicDirectory)){{#fluent}}
     
     app.databases.use(DatabaseConfigurationFactory.postgres(configuration: .init(
-        hostname: Environment.get("DATABASE_HOST") ?? "localhost",
-        port: Environment.get("DATABASE_PORT").flatMap(Int.init(_:)) ?? SQLPostgresConfiguration.ianaPortNumber,
-        username: Environment.get("DATABASE_USERNAME") ?? "vapor_username",
-        password: Environment.get("DATABASE_PASSWORD") ?? "vapor_password",
-        database: Environment.get("DATABASE_NAME") ?? "vapor_database",
+        hostname: "localhost",
+        port: SQLPostgresConfiguration.ianaPortNumber,
+        username: "envmon_user",
+        password: "envmon_password",
+        database: "envmon_database",
         tls: .prefer(try .init(configuration: .clientDefault)))
     ), as: .psql)
     
@@ -26,6 +26,8 @@ public func configure(_ app: Application) async throws {
     app.migrations.add(CreateAcceleration())
 
     app.views.use(.leaf)
+
+    
     // register routes
     try routes(app)
 }

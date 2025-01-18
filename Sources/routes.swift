@@ -188,10 +188,13 @@ func routes(_ app: Application) throws {
         
         app.lastReadingManager?.lastReading = env
         app.lastReadingManager?.timestamp = d
-        
-        if await !app.wsConnections!.connections.isEmpty {
-            await app.wsConnections!.purgeDisconnectedClients()
-            try await app.wsConnections?.broadcast(string: String(data: data, encoding: .utf8)!)
+        if let a = await app.wsConnections?.connections, !a.isEmpty {
+            
+            await app.wsConnections?.purgeDisconnectedClients()
+            
+            if let shit = String(data: data, encoding: .utf8) {
+                try await app.wsConnections?.broadcast(string: shit)
+            }
         }
 
         return Response(status: .accepted)
@@ -329,8 +332,9 @@ func routes(_ app: Application) throws {
     
     app.webSocket("envrt") { req, ws in
         Task {
-            await app.wsConnections?.connected(con: (req,ws))
-            req.logger.info("Connected ws for \(req.remoteAddress?.ipAddress ?? "unknown")")
+        let fuck = await app.wsConnections
+            await fuck?.connected(con: (req,ws))
+            req.logger.info("Connected ws for \(req.remoteAddress?.ipAddress ?? "unknown") to \(fuck)")
         }
     }
 
