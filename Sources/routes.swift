@@ -193,11 +193,10 @@ func routes(_ app: Application) throws {
     // realtime output
     
     app.webSocket("envrt") { req, ws in
-        Task {
-            let fuck = app.wsManager
-            try await fuck?.connected(con: (req,ws))
-            req.logger.info("Connected ws for \(req.remoteAddress?.ipAddress ?? "unknown") to \(fuck)")
-        }
+            
+            try? await WSConnectionManager.shared.connected(con: (req,ws))
+         
+
     }
 
 }

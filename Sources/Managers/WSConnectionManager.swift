@@ -10,16 +10,17 @@ import Vapor
 actor WSConnectionManager  {
     
     typealias Connection = (Request, WebSocket)
+    static let shared: WSConnectionManager = .init()
     
-    init(application:Application) {
-        self.application = application
-    }
+//    init(application:Application) {
+//        self.application = application
+//    }
     
     var connections = [Connection]()
     
-    weak var application: Application?
+//    weak var application: Application?
     
-    func connected(con: Connection) async throws {
+    func connected(con: Connection) throws {
         // cache the connection
         connections.append(con)
         
@@ -34,13 +35,13 @@ actor WSConnectionManager  {
         
         //TODO: send last reading
         
-        if let v = application?.lastReadingManager?.lastReading {
-            let d = v.toJSON(date: application?.lastReadingManager?.timestamp)
-            let s = String(data:d, encoding: .utf8)
-            application?.logger.info("sending Last Reading")
-            application?.logger.info(("\(s!)"))
-            try await con.1.send(s!)
-        }
+//        if let v = application?.lastReadingManager?.lastReading {
+//            let d = v.toJSON(date: application?.lastReadingManager?.timestamp)
+//            let s = String(data:d, encoding: .utf8)
+//            application?.logger.info("sending Last Reading")
+//            application?.logger.info(("\(s!)"))
+//            try await con.1.send(s!)
+//        }
     }
     
     func disconnectAll() async throws {
@@ -56,7 +57,6 @@ actor WSConnectionManager  {
     func purgeDisconnectedClients() async {
         for con in connections {
             if con.1.isClosed {
-                application?.logger.info("purging \(con.0.id)")
                 connections.removeAll { comp in
                     comp.0.id == con.0.id
                 }
@@ -67,7 +67,6 @@ actor WSConnectionManager  {
     func broadcast(string: String) async throws {
         await purgeDisconnectedClients()
         for con in connections {
-            application?.logger.info("sending to \(con.0.id)")
             try await con.1.send(string)
         }
     }
