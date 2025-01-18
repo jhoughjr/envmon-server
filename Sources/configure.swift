@@ -26,6 +26,8 @@ public func configure(_ app: Application) async throws {
     app.migrations.add(CreateAcceleration())
 
     app.views.use(.leaf)
+    
+    app.wsManager = .init(application: app)
 
     
     // register routes
