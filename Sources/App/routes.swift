@@ -50,13 +50,13 @@ final class WSConnectionManager: Sendable {
         
         //TODO: send last reading
         
-//        if let v = application.lastReadingManager?.lastReading {
-//            let d = v.toJSON(date: application.lastReadingManager?.timestamp)
-//            let s = String(data:d, encoding: .utf8)
-//            application.logger.info("sending Last Reading")
-//            application.logger.info(("\(s!)"))
-//            con.1.send(s!)
-//        }
+        if let v = application.lastReadingManager?.lastReading {
+            let d = v.toJSON(date: application.lastReadingManager?.timestamp)
+            let s = String(data:d, encoding: .utf8)
+            application.logger.info("sending Last Reading")
+            application.logger.info(("\(s!)"))
+            con.1.send(s!)
+        }
     }
     
     func disconnectAll() {
@@ -178,8 +178,8 @@ func routes(_ app: Application) throws {
         // should return models not env maybe?
         let data = env.toJSON(date: d)
         
-//        app.lastReadingManager?.lastReading = env
-//        app.lastReadingManager?.timestamp = d
+        app.lastReadingManager?.lastReading = env
+        app.lastReadingManager?.timestamp = d
         
         if !app.wsConnections!.connections.isEmpty {
             app.wsConnections!.purgeDisconnectedClients()
@@ -193,14 +193,14 @@ func routes(_ app: Application) throws {
         .init(status: .notImplemented)
     }
                   
-//    app.get("lastReading") { req async throws -> Response in
-//        if let last = app.lastReadingManager?.lastReading {
-//            req.logger.info("last = \(last)")
-//            return try await last.encodeResponse(for: req)
-//        }else {
-//            return .init(status: .noContent)
-//        }
-//    }
+    app.get("lastReading") { req async throws -> Response in
+        if let last = app.lastReadingManager?.lastReading {
+            req.logger.info("last = \(last)")
+            return try await last.encodeResponse(for: req)
+        }else {
+            return .init(status: .noContent)
+        }
+    }
     
     // paginated
     /*
