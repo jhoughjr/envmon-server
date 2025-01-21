@@ -15,7 +15,7 @@ final actor WSConnectionManager {
   
     var connections = [Connection]()
     
-    func connected(con: Connection) {
+    func connected(con: Connection) async {
         // cache the connection
         connections.append(con)
         con.0.logger.info("connections \(connections.count)")
@@ -39,17 +39,17 @@ final actor WSConnectionManager {
 //        }
     }
     
-    func disconnectAll()  {
+    func disconnectAll() async throws {
         for con in connections {
-            _ =  con.1.close(code: .normalClosure)
+            _ =  try await con.1.close(code: .normalClosure)
         }
     }
     
-    func disconnect(con: Connection) {
-        _ =  con.1.close(code: .normalClosure)
+    func disconnect(con: Connection) async throws{
+        _ =  try await con.1.close(code: .normalClosure)
     }
     
-    func purgeDisconnectedClients() {
+    func purgeDisconnectedClients() async {
         for con in connections {
             if con.1.isClosed {
                 connections.removeAll { comp in
@@ -59,15 +59,15 @@ final actor WSConnectionManager {
         }
     }
     
-    func broadcast(string: String) {
-        purgeDisconnectedClients()
+    func broadcast(string: String) async throws {
+        await purgeDisconnectedClients()
         for con in connections {
-            con.1.send(string)
+            try await con.1.send(string)
         }
     }
     
-    func broadcast(bytes: ByteBuffer) {
-        purgeDisconnectedClients()
+    func broadcast(bytes: ByteBuffer) async {
+        await purgeDisconnectedClients()
         for con in connections {
             con.1.send(bytes)
         }

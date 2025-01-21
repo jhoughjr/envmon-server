@@ -66,7 +66,7 @@ func routes(_ app: Application) throws {
             await man.purgeDisconnectedClients()
             
             if let shit = String(data: data, encoding: .utf8) {
-                await man.broadcast(string: shit)
+                try await man.broadcast(string: shit)
             }
         }
     
