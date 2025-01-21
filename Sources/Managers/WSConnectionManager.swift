@@ -9,19 +9,10 @@ import Vapor
 import NIOCore
 import NIOExtras
 
-final class WSConnectionManager {
+final actor WSConnectionManager {
     
     typealias Connection = (Request, WebSocket)
-    nonisolated(unsafe) static let shared: WSConnectionManager = .init()
-    
-//    init(application:Application) {
-//        self.application = application
-//    }
-//    let box = NIOLoopBoundBox.init([Connection](),
-//                                   eventLoo
-    
-    
-//    weak var application: Application?
+  
     var connections = [Connection]()
     
     func connected(con: Connection) {

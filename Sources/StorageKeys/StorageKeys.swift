@@ -7,6 +7,10 @@
 
 import Vapor
 
+struct WSManagerKey : StorageKey {
+    typealias Value = WSConnectionManager
+
+}
 struct LastReadingKey: StorageKey {
     typealias Value = LastReadingManager
 }

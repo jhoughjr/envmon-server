@@ -3,8 +3,19 @@ import Vapor
 import QueuesRedisDriver
 import NIOCore
 
+extension Application {
+    var wsMan: WSConnectionManager? {
+        get {
+            self.storage[WSManagerKey.self]
+        }
+        set {
+            self.storage[WSManagerKey.self] = newValue
+        }
+    }
+}
+
 func routes(_ app: Application) throws {
-        
+    
 //     remote board control
     app.post("updateInterval") {  req async throws -> Response  in
         let i = try req.content.decode(UpdateIntervalDTO.self)
@@ -51,15 +62,14 @@ func routes(_ app: Application) throws {
         app.lastReadingManager?.lastReading = env
         app.lastReadingManager?.timestamp = d
         
-        if !WSConnectionManager.shared.connections.isEmpty {
-            
-            WSConnectionManager.shared.purgeDisconnectedClients()
+        if let man = app.wsMan {
+            await man.purgeDisconnectedClients()
             
             if let shit = String(data: data, encoding: .utf8) {
-                WSConnectionManager.shared.broadcast(string: shit)
+                await man.broadcast(string: shit)
             }
         }
-
+    
         return Response(status: .accepted)
     }
     
@@ -193,8 +203,9 @@ func routes(_ app: Application) throws {
     
     // realtime output
     app.webSocket("envrt") { req, ws in
-       WSConnectionManager.shared.connected(con: (req,ws))
+        if let wsMan = app.wsMan {
+            await wsMan.connected(con: (req, ws))
+        }
     }
-
 }
 
