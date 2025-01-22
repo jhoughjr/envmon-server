@@ -204,7 +204,12 @@ func routes(_ app: Application) throws {
     // realtime output
     app.webSocket("envrt") { req, ws in
         if let wsMan = app.wsMan {
-            await wsMan.connected(con: (req, ws))
+            req.eventLoop.execute {
+                Task {
+                    await wsMan.connected(con: (req, ws))
+                }
+            }
+            
         }
     }
 }

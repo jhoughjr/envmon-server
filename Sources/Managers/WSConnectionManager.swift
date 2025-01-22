@@ -14,6 +14,7 @@ final actor WSConnectionManager {
     typealias Connection = (Request, WebSocket)
     
     weak var application: Application?
+    
     var logger: Logger?
     var connections = [Connection]()
     
