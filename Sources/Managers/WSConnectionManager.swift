@@ -12,8 +12,15 @@ import NIOExtras
 final actor WSConnectionManager {
     
     typealias Connection = (Request, WebSocket)
-  
+    
+    weak var application: Application?
+    var logger: Logger?
     var connections = [Connection]()
+    
+    func configure(for app: Application) {
+        self.application = app
+        self.logger = app.logger
+    }
     
     func connected(con: Connection) async {
         // cache the connection

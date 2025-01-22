@@ -27,7 +27,8 @@ public func configure(_ app: Application) async throws {
 
     app.views.use(.leaf)
     
-//    app.wsManager = .init()
+    app.wsMan = WSConnectionManager()
+    await app.wsMan?.configure(for: app)
 
     // register routes
     try routes(app)
