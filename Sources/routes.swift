@@ -33,7 +33,7 @@ func routes(_ app: Application) throws {
     // ui
     app.get("") { req async throws -> View in
         
-        let host = "jimmyhoughjr.freeddns.org"
+        let host = "localhost" //"jimmyhoughjr.freeddns.org"
         let port = app.http.server.configuration.port
 
         return try await req.view.render("index", ["socketaddr" : "ws://\(host):\(port)/envrt",
@@ -82,7 +82,7 @@ func routes(_ app: Application) throws {
             req.logger.info("last = \(last)")
             return try await last.encodeResponse(for: req)
         }else {
-            return .init(status: .noContent)
+            return .init(status: .ok, body: .init(stringLiteral: "{}"))
         }
     }
     
